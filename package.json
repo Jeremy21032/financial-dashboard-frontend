@@ -2,12 +2,31 @@
   "name": "student-finances-dashboard",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://Jeremy21032.github.io/financial-dahsboard-frontend",
   "dependencies": {
+    "@emotion/react": "latest",
+    "@emotion/styled": "latest",
+    "@heroui/react": "^2.6.14",
+    "@heroui/table": "^2.2.9",
+    "@mui/icons-material": "latest",
+    "@mui/material": "latest",
+    "@nextui-org/react": "latest",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^13.4.0",
     "@testing-library/user-event": "^13.5.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "@toolpad/core": "latest",
+    "antd": "^5.23.2",
+    "axios": "^1.7.8",
+    "chart.js": "^4.4.7",
+    "framer-motion": "^12.0.1",
+    "invariant": "latest",
+    "moment": "^2.30.1",
+    "prop-types": "latest",
+    "react": "latest",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "latest",
+    "react-highlight-words": "^0.21.0",
+    "react-router-dom": "^7.0.1",
     "react-scripts": "5.0.1",
     "web-vitals": "^2.1.4"
   },
@@ -15,7 +34,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "yarn build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -34,5 +55,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "gh-pages": "^6.3.0"
   }
 }
