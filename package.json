@@ -2,7 +2,7 @@
   "name": "student-finances-dashboard",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://Jeremy21032.github.io/financial-dahsboard-frontend",
+  "homepage": "https://jeremy21032.github.io/financial-dahsboard-frontend",
   "dependencies": {
     "@emotion/react": "latest",
     "@emotion/styled": "latest",
