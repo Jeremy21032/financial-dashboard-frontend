@@ -151,7 +151,7 @@ const columns = [
     sortDirections: ['descend', 'ascend'],
   },
 ];
-return <Table columns={columns} dataSource={students} />;
+return <Table columns={columns} dataSource={students} rowKey="id"/>;
 };
 
 export default Students;
