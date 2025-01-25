@@ -17,6 +17,7 @@ import Payments from './Payments';
 import Expenses from './Expenses';
 import Dashboard from '../components/Dashboard';
 import PaymentsByStudent from '../components/PaymentsByStudent';
+import Configurations from './Configurations';
 
 const NAVIGATION = [
   {
@@ -45,6 +46,11 @@ const NAVIGATION = [
     title: 'Reports',
     icon: <BarChartIcon />,
     children: [
+      {
+        segment: 'resume',
+        title: 'Resume',
+        icon: <DescriptionIcon />,
+      },
       {
         segment: 'payments',
         title: 'Payments',
@@ -84,10 +90,12 @@ function DemoPageContent({ pathname }) {
   const componentsMap = {
     "/home": <Home />,
     "/students": <Students />,
-    "/reports": <PaymentsByStudent />,
+    "/reports/resume": <PaymentsByStudent />,
     "/reports/payments": <Payments />,
+    "/reports/traffic": <Expenses />,
     "/expenses": <Expenses />,
     "/dashboard": <Dashboard />,
+    "/integrations": <Configurations />,
   }; 
   return (
     <Box

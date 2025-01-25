@@ -1,32 +1,40 @@
 import React, { useEffect, useState } from "react";
-import { Table, Tag, Typography, Card, InputNumber, Button, message } from "antd";
+import {
+  Table,
+  Tag,
+  Typography,
+  Card,
+  InputNumber,
+  Button,
+  message,
+} from "antd";
 import api from "../services/api";
 import moment from "moment";
 import { fetchPaymentsByStudent } from "../utils/dbUtils";
+import * as XLSX from "xlsx"; // 📌 Librería para exportar a Excel
+import { saveAs } from "file-saver"; // 📌 Para descargar el archivo
 
 const PaymentsByStudent = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [totalGoal, setTotalGoal] = useState(47.56); // Valor inicial predeterminado
+  const [totalGoal, setTotalGoal] = useState(47.56);
 
   useEffect(() => {
     fetchPaymentsByStudent(setData, setLoading);
-    fetchTotalGoal(); // Cargar el monto total desde el backend
+    fetchTotalGoal();
   }, []);
 
-  // Obtener el monto total desde la API y asegurarnos de que sea un número
   const fetchTotalGoal = async () => {
     try {
       const response = await api.get("/config");
       if (response.data.total_goal) {
-        setTotalGoal(Number(response.data.total_goal)); // Convertir a número
+        setTotalGoal(Number(response.data.total_goal));
       }
     } catch (error) {
       console.error("Error al obtener el total goal:", error);
     }
   };
 
-  // Guardar nuevo monto total en la base de datos
   const updateTotalGoal = async () => {
     try {
       await api.put("/config", { total_goal: totalGoal });
@@ -37,7 +45,6 @@ const PaymentsByStudent = () => {
     }
   };
 
-  // Obtener el estado de cumplimiento del monto total
   const getCompletionTag = (totalDeposited) => {
     const difference = Number(totalGoal) - Number(totalDeposited);
     if (difference <= 0) {
@@ -46,13 +53,11 @@ const PaymentsByStudent = () => {
     return <Tag color="orange">Falta completar</Tag>;
   };
 
-  // Obtener la diferencia del monto
   const getDifference = (totalDeposited) => {
     const difference = (Number(totalGoal) - Number(totalDeposited)).toFixed(2);
     return difference > 0 ? `$${difference}` : "$0.00";
   };
 
-  // Colores para el estado del pago
   const getStatusTag = (status) => {
     let color;
     switch (status) {
@@ -71,18 +76,34 @@ const PaymentsByStudent = () => {
     return <Tag color={color}>{status}</Tag>;
   };
 
-  // Columnas de la tabla principal (estudiantes)
+  // 📌 Función para exportar a Excel
+  const exportToExcel = () => {
+    const exportData = data.map((student) => ({
+      "Student ID": student.studentID,
+      "Full Name": student.full_name,
+      "Total Deposited": `$${Number(student.total_deposited).toFixed(2)}`,
+      "Total Goal": `$${Number(totalGoal).toFixed(2)}`,
+      Difference: getDifference(student.total_deposited),
+      Status:
+        student.total_deposited >= totalGoal ? "Completado" : "Falta completar",
+    }));
+
+    // Crear hoja de Excel
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Student Payments");
+
+    // Guardar archivo
+    const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const dataBlob = new Blob([excelBuffer], {
+      type: "application/octet-stream",
+    });
+    saveAs(dataBlob, "Student_Payments.xlsx");
+  };
+
   const columns = [
-    {
-      title: "Student ID",
-      dataIndex: "studentID",
-      key: "studentID",
-    },
-    {
-      title: "Full Name",
-      dataIndex: "full_name",
-      key: "full_name",
-    },
+    { title: "Student ID", dataIndex: "studentID", key: "studentID" },
+    { title: "Full Name", dataIndex: "full_name", key: "full_name" },
     {
       title: "Total Deposited",
       dataIndex: "total_deposited",
@@ -93,7 +114,7 @@ const PaymentsByStudent = () => {
       title: "Total Goal",
       dataIndex: "total_goal",
       key: "total_goal",
-      render: () => `$${Number(totalGoal).toFixed(2)}`, // Usar el valor dinámico convertido a número
+      render: () => `$${Number(totalGoal).toFixed(2)}`,
     },
     {
       title: "Difference",
@@ -107,7 +128,6 @@ const PaymentsByStudent = () => {
     },
   ];
 
-  // Columnas de la subtabla (pagos por estudiante)
   const expandedRowRender = (record) => {
     const subColumns = [
       {
@@ -142,26 +162,45 @@ const PaymentsByStudent = () => {
       },
     ];
 
-    return <Table columns={subColumns} dataSource={record.payments} rowKey="payment_id" pagination={false} />;
+    return (
+      <Table
+        columns={subColumns}
+        dataSource={record.payments}
+        rowKey="payment_id"
+        pagination={false}
+      />
+    );
   };
 
   return (
     <Card title="Student Payments Overview" bordered={false}>
-      {/* Input para actualizar el monto total */}
-      <div style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: "10px" }}>
+      <div
+        style={{
+          marginBottom: 20,
+          display: "flex",
+          alignItems: "center",
+          gap: "10px",
+        }}
+      >
         <span>Total Goal: </span>
         <InputNumber
           min={0}
           value={totalGoal}
-          onChange={(value) => setTotalGoal(Number(value))} // Asegurar conversión a número
+          onChange={(value) => setTotalGoal(Number(value))}
           step={0.01}
           style={{ width: 100 }}
         />
         <Button type="primary" onClick={updateTotalGoal}>
           Update Goal
         </Button>
+        <Button
+          type="default"
+          onClick={exportToExcel}
+          style={{ marginLeft: "auto" }}
+        >
+          📥 Export to Excel
+        </Button>
       </div>
-
       <Table
         columns={columns}
         dataSource={data}
