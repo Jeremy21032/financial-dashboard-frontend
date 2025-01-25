@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Table, Button, Form, Input, Popconfirm, message, Card } from "antd";
+import { Table, Button, Form, Input, Popconfirm, message, Card, InputNumber } from "antd";
 import api from "../services/api";
 
 const Configurations = () => {
@@ -29,7 +29,7 @@ const Configurations = () => {
   const handleAdd = async () => {
     try {
       const values = await form.validateFields();
-      const response = await api.post("/config/categories", { name: values.name, description:values.description, observations:values.observations });
+      const response = await api.post("/config/categories", { name: values.name, description:values.description, observation:values.observations, base_amount:values.base_amount });
       setCategories([...categories, { id: response.data.id, name: values.name }]);
       form.resetFields();
       message.success("Categoría agregada correctamente.");
@@ -121,6 +121,9 @@ const Configurations = () => {
       <Form form={form} layout="inline" style={{ marginBottom: 20 }}>
         <Form.Item name="name" rules={[{ required: true, message: "Ingrese un nombre de categoría" }]}>
           <Input placeholder="Nombre de la categoría" />
+        </Form.Item>
+        <Form.Item name="base_amount" rules={[{ required: true, message: "Ingrese un monto" }]}>
+          <InputNumber placeholder="Monto base" />
         </Form.Item>
         <Form.Item name="description" rules={[{ required: true, message: "Ingrese una descripción de categoría" }]}>
           <Input placeholder="Decripción de la categoría" />

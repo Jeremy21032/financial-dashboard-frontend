@@ -9,29 +9,40 @@ const Dashboard = () => {
     totalExpenses: 0,
     totalDifference: 0,
   });
-  const [expensePerStudent, setExpensePerStudent] = useState([]); // Nueva vista de gastos por estudiante
+  const [expensePerStudent, setExpensePerStudent] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [columns, setColumns] = useState([]);
 
   useEffect(() => {
-    fetchData();
+    fetchPayments();
   }, []);
 
-  // 🔹 Obtener Pagos, Gastos y Gastos por Estudiante en paralelo
-  const fetchData = async () => {
+  // 🔹 Obtener Pagos, Gastos y Gastos por Estudiante en secuencia
+  const fetchPayments = async () => {
     try {
       setLoading(true);
-      const [paymentsRes, expensesRes, expensesPerStudentRes] = await Promise.all([
-        api.get("/expenses"),
-        api.get("/payments"),
-        api.get("/expenses/expenses-per-student"), // Nueva vista
-      ]);
 
+      // 🔹 1. Obtener Pagos
+      const paymentsRes = await api.get("/payments");
       const totalPayments = paymentsRes.data.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+
+      // 🔹 2. Obtener Gastos
+      const expensesRes = await api.get("/expenses");
       const totalExpenses = expensesRes.data.reduce((sum, e) => sum + parseFloat(e.amount), 0);
+
+      // 🔹 3. Obtener Gastos por Estudiante
+      const expensesPerStudentRes = await api.get("/expenses/expenses-per-student");
+
+      // 🔹 Calcular Diferencia
       const totalDifference = totalPayments - totalExpenses;
 
+      // 🔹 Transformar Datos para la Tabla
+      const transformedData = transformData(expensesPerStudentRes.data);
+      setExpensePerStudent(transformedData.data);
+      setColumns(transformedData.columns);
+
+      // 🔹 Actualizar estados
       setTotals({ totalPayments, totalExpenses, totalDifference });
-      setExpensePerStudent(expensesPerStudentRes.data);
     } catch (error) {
       message.error("Error al obtener los datos del dashboard.");
       console.error(error);
@@ -40,12 +51,47 @@ const Dashboard = () => {
     }
   };
 
-  // 🔹 Columnas para la tabla de gastos por estudiante
-  const studentExpenseColumns = [
-    { title: "Student ID", dataIndex: "student_id", key: "student_id" },
-    { title: "Nombre", dataIndex: "student_name", key: "student_name" },
-    { title: "Total Gastos", dataIndex: "total_expense", key: "total_expense", render: (val) => `$${val.toFixed(2)}` },
-  ];
+  // 🔹 Función para transformar los datos en un formato adecuado para la tabla
+  const transformData = (rawData) => {
+    const studentMap = new Map();
+    const categorySet = new Set();
+
+    rawData.forEach((entry) => {
+      if (!studentMap.has(entry.studentID)) {
+        studentMap.set(entry.studentID, {
+          student_id: entry.studentID,
+          student_name: entry.student_name,
+          total_expense: 0,
+        });
+      }
+
+      const student = studentMap.get(entry.studentID);
+      const category = entry.category;
+      const amount = parseFloat(entry.shared_amount);
+
+      student[category] = (student[category] || 0) + amount;
+      student.total_expense += amount;
+      categorySet.add(category);
+    });
+
+    // 🔹 Definir las columnas dinámicas
+    const dynamicColumns = Array.from(categorySet).map((category) => ({
+      title: category,
+      dataIndex: category,
+      key: category,
+      render: (val) => (val ? `$${val.toFixed(2)}` : "-"),
+    }));
+
+    // 🔹 Columnas base
+    const baseColumns = [
+      { title: "Student ID", dataIndex: "student_id", key: "student_id" },
+      { title: "Nombre", dataIndex: "student_name", key: "student_name" },
+      ...dynamicColumns,
+      { title: "Total Gastos", dataIndex: "total_expense", key: "total_expense", render: (val) => `$${val.toFixed(2)}` },
+    ];
+
+    return { data: Array.from(studentMap.values()), columns: baseColumns };
+  };
 
   return (
     <div style={{ padding: "20px" }}>
@@ -96,10 +142,11 @@ const Dashboard = () => {
       {/* 🔹 Tabla de Gastos por Estudiante */}
       <Card title="Gastos por Estudiante" bordered={false} style={{ marginTop: "20px" }}>
         <Table
-          columns={studentExpenseColumns}
+          columns={columns}
           dataSource={expensePerStudent}
           rowKey="student_id"
           loading={loading}
+          pagination={{ pageSize: 10 }}
         />
       </Card>
     </div>
