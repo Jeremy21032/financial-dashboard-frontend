@@ -86,7 +86,7 @@ const Expenses = () => {
       title: "Monto",
       dataIndex: "amount",
       key: "amount",
-      render: (amount) => `$${amount.toFixed(2)}`,
+      render: (amount) => `$${amount?.toFixed(2)}`,
     },
     {
       title: "Fecha",
