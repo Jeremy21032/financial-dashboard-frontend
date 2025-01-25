@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from "react";
-import { Table, Form, Input, InputNumber, DatePicker, Select, Upload, Button, message, Image, Card } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
+import {
+  Table,
+  Form,
+  Input,
+  InputNumber,
+  DatePicker,
+  Select,
+  Upload,
+  Button,
+  message,
+  Image,
+  Card,
+  Popconfirm,
+} from "antd";
+import { UploadOutlined, DeleteOutlined } from "@ant-design/icons";
 import api from "../services/api";
 import moment from "moment";
 
@@ -11,7 +24,7 @@ const Expenses = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(false);
   const [form] = Form.useForm();
-  const [imageFiles, setImageFiles] = useState([]); // Guardar múltiples imágenes
+  const [imageFiles, setImageFiles] = useState([]); // Manejo de múltiples imágenes
 
   // 📌 Cargar gastos y categorías al inicio
   useEffect(() => {
@@ -62,58 +75,56 @@ const Expenses = () => {
       const expenseData = {
         ...values,
         date: values.date.format("YYYY-MM-DD"),
-        images: imageFiles, // Enviar imágenes como array en Base64
+        image_url: imageFiles, // Enviar imágenes en formato JSON
       };
 
       await api.post("/expenses", expenseData);
       message.success("Gasto agregado correctamente.");
       form.resetFields();
-      setImageFiles([]); // Limpiar imágenes
+      setImageFiles([]);
       fetchExpenses(); // Recargar la lista
     } catch (error) {
       message.error("Error al agregar el gasto.");
     }
   };
 
+  // 📌 Eliminar un gasto
+  const handleDelete = async (id) => {
+    try {
+      await api.delete(`/expenses/${id}`);
+      message.success("Gasto eliminado correctamente.");
+      fetchExpenses(); // Recargar la lista
+    } catch (error) {
+      message.error("Error al eliminar el gasto.");
+    }
+  };
+
   // 📌 Definir columnas de la tabla de gastos
   const columns = [
-    {
-      title: "Categoría",
-      dataIndex: "category_name",
-      key: "category_name",
-    },
-    {
-      title: "Monto",
-      dataIndex: "amount",
-      key: "amount",
-      render: (amount) => `$${amount?.toFixed(2)}`,
-    },
-    {
-      title: "Fecha",
-      dataIndex: "date",
-      key: "date",
-      render: (date) => moment(date).format("YYYY-MM-DD"),
-    },
-    {
-      title: "Descripción",
-      dataIndex: "description",
-      key: "description",
-    },
-    {
-      title: "Observación",
-      dataIndex: "observation",
-      key: "observation",
-    },
+    { title: "Categoría", dataIndex: "category_name", key: "category_name" },
+    { title: "Monto", dataIndex: "amount", key: "amount", render: (amount) => `$${amount}` },
+    { title: "Fecha", dataIndex: "date", key: "date", render: (date) => moment(date).format("YYYY-MM-DD") },
+    { title: "Descripción", dataIndex: "description", key: "description" },
+    { title: "Observación", dataIndex: "observacion", key: "observacion" },
     {
       title: "Imágenes",
-      dataIndex: "images",
-      key: "images",
+      dataIndex: "image_url",
+      key: "image_url",
       render: (images) =>
         images && images.length > 0 ? (
           images.map((img, index) => <Image key={index} width={80} src={img} style={{ marginRight: 5 }} />)
         ) : (
           "No Images"
         ),
+    },
+    {
+      title: "Acciones",
+      key: "actions",
+      render: (_, record) => (
+        <Popconfirm title="¿Seguro que deseas eliminar este gasto?" onConfirm={() => handleDelete(record.id)}>
+          <Button danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      ),
     },
   ];
 
@@ -142,7 +153,7 @@ const Expenses = () => {
           <Input.TextArea placeholder="Descripción del gasto" />
         </Form.Item>
 
-        <Form.Item name="observation" label="Observación">
+        <Form.Item name="observacion" label="Observación">
           <Input.TextArea placeholder="Observaciones adicionales" />
         </Form.Item>
 
