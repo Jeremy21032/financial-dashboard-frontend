@@ -2,20 +2,25 @@ import React, { useState, useEffect } from "react";
 import api from "../services/api";
 import { Button, DatePicker, Form, Input, Select } from "antd";
 import { fetchPayments, fetchStudents } from "../utils/dbUtils";
-import ImageUploader from "../components/ImageUploader"; // Importar el componente de carga de imágenes
-import PaymentsTable from "../components/PaymentsTable"; // Importar la tabla de pagos
+import ImageUploader from "../components/ImageUploader";
+import PaymentsTable from "../components/PaymentsTable";
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [students, setStudents] = useState([]);
+  const [filteredPayments, setFilteredPayments] = useState([]); // Lista filtrada de pagos
+  const [searchLastName, setSearchLastName] = useState(""); // Filtro por apellido
+  const [searchPaymentID, setSearchPaymentID] = useState(""); // Filtro por ID de pago
+
   const [newPayment, setNewPayment] = useState({
     student_id: "",
     amount: "",
     date: "",
     payment_period: "first",
     payment_image: "",
-    payment_status: "Registrado", // Estado por defecto
+    payment_status: "Registrado",
   });
+
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -27,7 +32,10 @@ const Payments = () => {
       setStudents(formattedStudents);
     });
 
-    fetchPayments(setPayments);
+    fetchPayments((data) => {
+      setPayments(data);
+      setFilteredPayments(data);
+    });
   }, []);
 
   const handleInputChange = (e) => {
@@ -35,7 +43,7 @@ const Payments = () => {
 
     setNewPayment({
       ...newPayment,
-      [name]: name === "amount" ? parseFloat(value) || "" : value, // Convertir a double
+      [name]: name === "amount" ? parseFloat(value) || "" : value,
     });
   };
 
@@ -62,9 +70,14 @@ const Payments = () => {
     try {
       await api.post("/payments", {
         ...newPayment,
-        amount: parseFloat(newPayment.amount), // Asegurar que amount sea un número
+        amount: parseFloat(newPayment.amount),
       });
-      fetchPayments(setPayments);
+
+      fetchPayments((data) => {
+        setPayments(data);
+        setFilteredPayments(data);
+      });
+
       setNewPayment({
         student_id: "",
         amount: "",
@@ -73,6 +86,7 @@ const Payments = () => {
         payment_image: "",
         payment_status: "Registrado",
       });
+
       form.resetFields();
       alert("Pago registrado con éxito.");
     } catch (error) {
@@ -80,6 +94,38 @@ const Payments = () => {
       alert("Hubo un error al registrar el pago.");
     }
   };
+
+  // 🔹 Filtrar pagos por apellido del estudiante o ID de pago
+  const handleFilterPayments = () => {
+    let filtered = payments;
+
+    if (searchLastName) {
+      const student = students.find((s) => {
+        const firstLastName = s.label.split(" ")[0]; // Obtener solo el primer apellido
+        return firstLastName.toLowerCase() === searchLastName.toLowerCase();
+      });
+
+      if (student) {
+        filtered = filtered.filter((payment) => payment.student_id === student.value);
+      } else {
+        filtered = [];
+      }
+    }
+
+    if (searchPaymentID) {
+      filtered = filtered.filter((payment) => payment.id.toString() === searchPaymentID);
+    }
+
+    setFilteredPayments(filtered);
+  };
+
+  // 🔹 Extraer solo los primeros apellidos únicos para el filtro
+  const uniqueLastNames = Array.from(
+    new Set(students.map((s) => s.label.split(" ")[0].toLowerCase()))
+  ).map((lastName) => ({
+    value: lastName,
+    label: lastName.charAt(0).toUpperCase() + lastName.slice(1),
+  }));
 
   return (
     <div>
@@ -144,9 +190,32 @@ const Payments = () => {
         </Form.Item>
       </Form>
 
-      {/* Sección para mostrar los pagos */}
+      {/* 🔹 Filtros */}
+      <h3>Filtrar Pagos</h3>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "20px" }}>
+        <Select
+          showSearch
+          placeholder="Filtrar por Apellido"
+          optionFilterProp="label"
+          options={uniqueLastNames}
+          onChange={(value) => setSearchLastName(value)}
+          allowClear
+          style={{ width: 200 }}
+        />
+        <Input
+          placeholder="Filtrar por ID de Pago"
+          value={searchPaymentID}
+          onChange={(e) => setSearchPaymentID(e.target.value)}
+          style={{ width: 200 }}
+        />
+        <Button type="primary" onClick={handleFilterPayments}>
+          Aplicar Filtros
+        </Button>
+      </div>
+
+      {/* 🔹 Tabla de Pagos Filtrada */}
       <h2>Payments List</h2>
-      <PaymentsTable payments={payments} setPayments={setPayments} />
+      <PaymentsTable payments={filteredPayments} setPayments={setPayments} />
     </div>
   );
 };
