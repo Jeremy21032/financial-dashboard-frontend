@@ -7,17 +7,21 @@ import {
   InputNumber,
   Button,
   message,
+  Select,
 } from "antd";
 import api from "../services/api";
 import moment from "moment";
 import { fetchPaymentsByStudent } from "../utils/dbUtils";
-import * as XLSX from "xlsx"; // 📌 Librería para exportar a Excel
-import { saveAs } from "file-saver"; // 📌 Para descargar el archivo
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
+
+const { Option } = Select;
 
 const PaymentsByStudent = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalGoal, setTotalGoal] = useState(47.56);
+  const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
     fetchPaymentsByStudent(setData, setLoading);
@@ -45,19 +49,25 @@ const PaymentsByStudent = () => {
     }
   };
 
+  // 📌 Estado de finalización con color diferente si hay exceso de pago
   const getCompletionTag = (totalDeposited) => {
-    const difference = Number(totalGoal) - Number(totalDeposited);
-    if (difference <= 0) {
+    const difference = Number(totalDeposited) - Number(totalGoal);
+    if (difference > 0) {
+      return <Tag color="red">Completado/Devolver</Tag>;
+    } else if (difference === 0) {
       return <Tag color="green">Completado</Tag>;
+    } else {
+      return <Tag color="orange">Falta completar</Tag>;
     }
-    return <Tag color="orange">Falta completar</Tag>;
   };
 
+  // 📌 Diferencia con valores negativos cuando hay excedente
   const getDifference = (totalDeposited) => {
-    const difference = (Number(totalGoal) - Number(totalDeposited)).toFixed(2);
-    return difference > 0 ? `$${difference}` : "$0.00";
+    const difference = (Number(totalDeposited) - Number(totalGoal)).toFixed(2);
+    return `$${difference}`;
   };
 
+  // 📌 Etiqueta de estado de pago
   const getStatusTag = (status) => {
     let color;
     switch (status) {
@@ -76,7 +86,7 @@ const PaymentsByStudent = () => {
     return <Tag color={color}>{status}</Tag>;
   };
 
-  // 📌 Función para exportar a Excel
+  // 📌 Exportar a Excel
   const exportToExcel = () => {
     const exportData = data.map((student) => ({
       "Student ID": student.studentID,
@@ -85,15 +95,17 @@ const PaymentsByStudent = () => {
       "Total Goal": `$${Number(totalGoal).toFixed(2)}`,
       Difference: getDifference(student.total_deposited),
       Status:
-        student.total_deposited >= totalGoal ? "Completado" : "Falta completar",
+        Number(student.total_deposited) > Number(totalGoal)
+          ? "Completado/Devolver"
+          : student.total_deposited >= totalGoal
+          ? "Completado"
+          : "Falta completar",
     }));
 
-    // Crear hoja de Excel
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Student Payments");
 
-    // Guardar archivo
     const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
     const dataBlob = new Blob([excelBuffer], {
       type: "application/octet-stream",
@@ -101,6 +113,25 @@ const PaymentsByStudent = () => {
     saveAs(dataBlob, "Student_Payments.xlsx");
   };
 
+  // 📌 Filtrar por estado
+  const handleFilterChange = (value) => {
+    setStatusFilter(value);
+  };
+
+  // 📌 Aplicar filtro sobre los datos de la tabla
+  const filteredData = statusFilter
+    ? data.filter((student) => {
+        const status =
+          Number(student.total_deposited) > Number(totalGoal)
+            ? "Completado/Devolver"
+            : student.total_deposited >= totalGoal
+            ? "Completado"
+            : "Falta completar";
+        return status === statusFilter;
+      })
+    : data;
+
+  // 📌 Definir columnas de la tabla
   const columns = [
     { title: "Student ID", dataIndex: "studentID", key: "studentID" },
     { title: "Full Name", dataIndex: "full_name", key: "full_name" },
@@ -112,7 +143,6 @@ const PaymentsByStudent = () => {
     },
     {
       title: "Total Goal",
-      dataIndex: "total_goal",
       key: "total_goal",
       render: () => `$${Number(totalGoal).toFixed(2)}`,
     },
@@ -120,11 +150,15 @@ const PaymentsByStudent = () => {
       title: "Difference",
       key: "difference",
       render: (_, record) => getDifference(record.total_deposited),
+      sorter: (a, b) =>
+        Number(a.total_deposited) - Number(b.total_deposited), // Permite ordenar por diferencia
     },
     {
       title: "Status",
       key: "status",
       render: (_, record) => getCompletionTag(record.total_deposited),
+      sorter: (a, b) =>
+        Number(a.total_deposited) - Number(b.total_deposited), // Permite ordenar por cantidad depositada
     },
   ];
 
@@ -174,14 +208,7 @@ const PaymentsByStudent = () => {
 
   return (
     <Card title="Student Payments Overview" bordered={false}>
-      <div
-        style={{
-          marginBottom: 20,
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-        }}
-      >
+      <div style={{ marginBottom: 20, display: "flex", gap: "10px" }}>
         <span>Total Goal: </span>
         <InputNumber
           min={0}
@@ -193,17 +220,26 @@ const PaymentsByStudent = () => {
         <Button type="primary" onClick={updateTotalGoal}>
           Update Goal
         </Button>
-        <Button
-          type="default"
-          onClick={exportToExcel}
-          style={{ marginLeft: "auto" }}
+
+        <Select
+          placeholder="Filter by Status"
+          onChange={handleFilterChange}
+          allowClear
+          style={{ width: 200 }}
         >
+          <Option value="Completado">Completado</Option>
+          <Option value="Completado/Devolver">Completado/Devolver</Option>
+          <Option value="Falta completar">Falta completar</Option>
+        </Select>
+
+        <Button type="default" onClick={exportToExcel} style={{ marginLeft: "auto" }}>
           📥 Export to Excel
         </Button>
       </div>
+
       <Table
         columns={columns}
-        dataSource={data}
+        dataSource={filteredData}
         rowKey="studentID"
         loading={loading}
         expandable={{ expandedRowRender }}
