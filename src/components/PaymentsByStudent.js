@@ -21,86 +21,85 @@ const PaymentsByStudent = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalGoal, setTotalGoal] = useState(47.56);
+  const [totalSpentGoal, setTotalSpentGoal] = useState(57.66);
   const [statusFilter, setStatusFilter] = useState("");
 
   useEffect(() => {
     fetchPaymentsByStudent(setData, setLoading);
-    fetchTotalGoal();
+    fetchConfig();
   }, []);
 
-  const fetchTotalGoal = async () => {
+  const fetchConfig = async () => {
     try {
       const response = await api.get("/config");
-      if (response.data.total_goal) {
-        setTotalGoal(Number(response.data.total_goal));
-      }
+      if (response.data.total_goal) setTotalGoal(Number(response.data.total_goal));
+      if (response.data.total_spent_goal) setTotalSpentGoal(Number(response.data.total_spent_goal));
     } catch (error) {
-      console.error("Error al obtener el total goal:", error);
+      console.error("Error al obtener configuración:", error);
     }
   };
 
-  const updateTotalGoal = async () => {
+  const updateGoals = async () => {
     try {
-      await api.put("/config", { total_goal: totalGoal });
-      message.success("Monto total actualizado correctamente");
+      await api.put("/config", {
+        total_goal: totalGoal,
+        total_spent_goal: totalSpentGoal,
+      });
+      message.success("Montos actualizados correctamente");
     } catch (error) {
-      message.error("Error al actualizar el monto total");
+      message.error("Error al actualizar montos");
       console.error("Error:", error);
     }
   };
-
-  // 📌 Estado de finalización con color diferente si hay exceso de pago
+  function truncarFloat(num, decimales = 2) {
+    const factor = Math.pow(10, decimales);
+    return Math.trunc(num * factor) / factor;
+  }
   const getCompletionTag = (totalDeposited) => {
-    const difference = Number(totalDeposited) - Number(totalGoal);
-    if (difference > 0) {
-      return <Tag color="red">Completado/Devolver</Tag>;
-    } else if (difference === 0) {
-      return <Tag color="green">Completado</Tag>;
-    } else {
-      return <Tag color="orange">Falta completar</Tag>;
-    }
+    const diff = truncarFloat(totalDeposited) - truncarFloat(totalGoal);
+    console.log("Total Deposited:", totalDeposited, "Total Goal:", totalGoal, "Difference:", diff);
+    if (truncarFloat(diff) > 0) return <Tag color="red">Completado/Devolver</Tag>;
+    if (truncarFloat(diff) === 0) return <Tag color="green">Completado</Tag>;
+    return <Tag color="orange">Falta completar</Tag>;
   };
 
-  // 📌 Diferencia con valores negativos cuando hay excedente
-  const getDifference = (totalDeposited) => {
-    const difference = (Number(totalDeposited) - Number(totalGoal)).toFixed(2);
-    return `$${difference}`;
+  const getDifference = (totalDeposited) =>
+    `$${(truncarFloat(totalDeposited) - truncarFloat(totalGoal)).toFixed(2)}`;
+
+  const getDifferenceSpent = (totalDeposited) =>
+    `$${(totalDeposited - totalSpentGoal).toFixed(2)}`;
+
+  const getTotalToRefund = (totalDeposited) => {
+    const diffGoal = totalDeposited - totalGoal;
+    const diffSpent = totalDeposited - totalSpentGoal;
+    const refund = (diffGoal > 0 ? diffGoal : 0) + (diffSpent > 0 ? diffSpent : 0);
+    return `$${refund.toFixed(2)}`;
   };
 
-  // 📌 Etiqueta de estado de pago
-  const getStatusTag = (status) => {
-    let color;
-    switch (status) {
-      case "Registrado":
-        color = "blue";
-        break;
-      case "Acreditado":
-        color = "green";
-        break;
-      case "Registrado/Sin acreditar":
-        color = "orange";
-        break;
-      default:
-        color = "gray";
-    }
-    return <Tag color={color}>{status}</Tag>;
-  };
-
-  // 📌 Exportar a Excel
   const exportToExcel = () => {
-    const exportData = data.map((student) => ({
-      "Student ID": student.studentID,
-      "Full Name": student.full_name,
-      "Total Deposited": `$${Number(student.total_deposited).toFixed(2)}`,
-      "Total Goal": `$${Number(totalGoal).toFixed(2)}`,
-      Difference: getDifference(student.total_deposited),
-      Status:
-        Number(student.total_deposited) > Number(totalGoal)
-          ? "Completado/Devolver"
-          : student.total_deposited >= totalGoal
-          ? "Completado"
-          : "Falta completar",
-    }));
+    const exportData = data.map((student) => {
+      const totalDeposited = Number(student.total_deposited);
+      const diffGoal = totalDeposited - totalGoal;
+      const diffSpent = totalDeposited - totalSpentGoal;
+      const totalRefund = (diffGoal > 0 ? diffGoal : 0) + (diffSpent > 0 ? diffSpent : 0);
+
+      return {
+        "Student ID": student.studentID,
+        "Full Name": student.full_name,
+        "Total Deposited": `${totalDeposited.toFixed(2)}`,
+        "Total Goal": `${totalGoal.toFixed(2)}`,
+        "Total Spent Goal": `${totalSpentGoal.toFixed(2)}`,
+        "Diff Deposit vs Goal": `${diffGoal.toFixed(2)}`,
+        "Diff Deposit vs Spent": `${diffSpent.toFixed(2)}`,
+        "Total to Refund": `${totalRefund.toFixed(2)}`,
+        Status:
+          diffGoal > 0
+            ? "Completado/Devolver"
+            : totalDeposited >= totalGoal
+            ? "Completado"
+            : "Falta completar",
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
@@ -113,25 +112,23 @@ const PaymentsByStudent = () => {
     saveAs(dataBlob, "Student_Payments.xlsx");
   };
 
-  // 📌 Filtrar por estado
   const handleFilterChange = (value) => {
     setStatusFilter(value);
   };
 
-  // 📌 Aplicar filtro sobre los datos de la tabla
   const filteredData = statusFilter
     ? data.filter((student) => {
+        const diff = Number(student.total_deposited) - totalGoal;
         const status =
-          Number(student.total_deposited) > Number(totalGoal)
+          diff > 0
             ? "Completado/Devolver"
-            : student.total_deposited >= totalGoal
+            : diff === 0
             ? "Completado"
             : "Falta completar";
         return status === statusFilter;
       })
     : data;
 
-  // 📌 Definir columnas de la tabla
   const columns = [
     { title: "Student ID", dataIndex: "studentID", key: "studentID" },
     { title: "Full Name", dataIndex: "full_name", key: "full_name" },
@@ -144,21 +141,32 @@ const PaymentsByStudent = () => {
     {
       title: "Total Goal",
       key: "total_goal",
-      render: () => `$${Number(totalGoal).toFixed(2)}`,
+      render: () => `$${totalGoal.toFixed(2)}`,
     },
     {
-      title: "Difference",
-      key: "difference",
+      title: "Total Spent Goal",
+      key: "total_spent_goal",
+      render: () => `$${totalSpentGoal.toFixed(2)}`,
+    },
+    {
+      title: "Diff vs Goal",
+      key: "diff_goal",
       render: (_, record) => getDifference(record.total_deposited),
-      sorter: (a, b) =>
-        Number(a.total_deposited) - Number(b.total_deposited), // Permite ordenar por diferencia
+    },
+    {
+      title: "Diff vs Spent",
+      key: "diff_spent",
+      render: (_, record) => getDifferenceSpent(record.total_deposited),
+    },
+    {
+      title: "Total to Refund",
+      key: "total_refund",
+      render: (_, record) => getTotalToRefund(record.total_deposited),
     },
     {
       title: "Status",
       key: "status",
       render: (_, record) => getCompletionTag(record.total_deposited),
-      sorter: (a, b) =>
-        Number(a.total_deposited) - Number(b.total_deposited), // Permite ordenar por cantidad depositada
     },
   ];
 
@@ -186,13 +194,11 @@ const PaymentsByStudent = () => {
         title: "Payment Period",
         dataIndex: "payment_period",
         key: "payment_period",
-        render: (period) => period.charAt(0).toUpperCase() + period.slice(1),
       },
       {
         title: "Payment Status",
         dataIndex: "payment_status",
         key: "payment_status",
-        render: (status) => getStatusTag(status),
       },
     ];
 
@@ -208,8 +214,8 @@ const PaymentsByStudent = () => {
 
   return (
     <Card title="Student Payments Overview" bordered={false}>
-      <div style={{ marginBottom: 20, display: "flex", gap: "10px" }}>
-        <span>Total Goal: </span>
+      <div style={{ marginBottom: 20, display: "flex", flexWrap: "wrap", gap: 10 }}>
+        <span>Total Goal:</span>
         <InputNumber
           min={0}
           value={totalGoal}
@@ -217,8 +223,16 @@ const PaymentsByStudent = () => {
           step={0.01}
           style={{ width: 100 }}
         />
-        <Button type="primary" onClick={updateTotalGoal}>
-          Update Goal
+        <span>Total Spent Goal:</span>
+        <InputNumber
+          min={0}
+          value={totalSpentGoal}
+          onChange={(value) => setTotalSpentGoal(Number(value))}
+          step={0.01}
+          style={{ width: 100 }}
+        />
+        <Button type="primary" onClick={updateGoals}>
+          Update Goals
         </Button>
 
         <Select
