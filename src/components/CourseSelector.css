@@ -1,0 +1,72 @@
+.course-selector-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.course-selector-label {
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.course-selector-dropdown {
+  min-width: 300px;
+  flex: 1;
+}
+
+.course-status {
+  color: white;
+  font-size: 14px;
+}
+
+.status-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+/* Tablet */
+@media (max-width: 1024px) {
+  .course-selector-dropdown {
+    min-width: 250px;
+  }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .course-selector-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .course-selector-label {
+    font-size: 14px;
+  }
+
+  .course-selector-dropdown {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .course-status {
+    align-self: flex-start;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .course-selector-card .ant-card-body {
+    padding: 12px 16px !important;
+  }
+
+  .course-selector-label {
+    font-size: 13px;
+  }
+}
+

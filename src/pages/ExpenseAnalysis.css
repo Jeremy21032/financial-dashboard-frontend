@@ -1,0 +1,230 @@
+.expense-analysis-container {
+  padding: 24px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.page-header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.page-header h2 {
+  margin-bottom: 8px;
+  color: #1890ff;
+}
+
+/* Cards responsivas */
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+/* Estadísticas */
+.ant-statistic {
+  text-align: center;
+}
+
+.ant-statistic-title {
+  color: #666;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.ant-statistic-content {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Tabla de categorías */
+.ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+  color: #333;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: #f0f8ff;
+}
+
+/* Progress bars */
+.ant-progress-bg {
+  transition: all 0.3s ease;
+}
+
+.ant-progress-status-exception .ant-progress-bg {
+  background: #ff4d4f;
+}
+
+.ant-progress-status-active .ant-progress-bg {
+  background: #faad14;
+}
+
+.ant-progress-status-normal .ant-progress-bg {
+  background: #52c41a;
+}
+
+/* Cards de tendencia mensual */
+.ant-card-small .ant-card-body {
+  padding: 12px;
+}
+
+/* Botones de exportación */
+.export-buttons {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.export-buttons .ant-btn {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.export-buttons .ant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.export-buttons .ant-btn-excel {
+  background: linear-gradient(135deg, #1d6f42, #28a745);
+  border: none;
+}
+
+.export-buttons .ant-btn-pdf {
+  background: linear-gradient(135deg, #dc3545, #e74c3c);
+  border: none;
+}
+
+.export-buttons .ant-btn-csv {
+  background: linear-gradient(135deg, #6c757d, #495057);
+  border: none;
+  color: white;
+}
+
+/* Header responsive */
+.page-header {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .expense-analysis-container {
+    padding: 16px;
+  }
+  
+  .page-header h2 {
+    font-size: 20px;
+  }
+  
+  .ant-statistic-content {
+    font-size: 20px;
+  }
+  
+  .ant-card {
+    margin-bottom: 16px;
+  }
+  
+  .page-header-content {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .export-buttons {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 576px) {
+  .expense-analysis-container {
+    padding: 12px;
+  }
+  
+  .page-header h2 {
+    font-size: 18px;
+  }
+  
+  .ant-statistic-content {
+    font-size: 18px;
+  }
+}
+
+/* Animaciones */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ant-card {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+.ant-card:nth-child(1) { animation-delay: 0.1s; }
+.ant-card:nth-child(2) { animation-delay: 0.2s; }
+.ant-card:nth-child(3) { animation-delay: 0.3s; }
+.ant-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* Colores temáticos */
+.income-color {
+  color: #52c41a !important;
+}
+
+.expense-color {
+  color: #ff4d4f !important;
+}
+
+.balance-positive {
+  color: #52c41a !important;
+}
+
+.balance-negative {
+  color: #ff4d4f !important;
+}
+
+/* Hover effects */
+.ant-card .ant-statistic:hover .ant-statistic-content {
+  transform: scale(1.05);
+  transition: transform 0.3s ease;
+}
+
+/* Loading state */
+.ant-spin-container {
+  min-height: 400px;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 50px 20px;
+  color: #999;
+}
+
+.empty-state .anticon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  color: #d9d9d9;
+}

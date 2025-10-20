@@ -1,0 +1,61 @@
+.dashboard-stats-container {
+  width: 100%;
+}
+
+.stats-cards-row {
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  height: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.expenses-table-card {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.expenses-table {
+  overflow-x: auto;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .stats-cards-row {
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    margin-bottom: 12px;
+  }
+
+  .expenses-table-card {
+    margin-top: 0;
+  }
+
+  .expenses-table {
+    font-size: 12px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .stat-card .ant-statistic-title {
+    font-size: 13px;
+  }
+
+  .stat-card .ant-statistic-content {
+    font-size: 20px;
+  }
+
+  .expenses-table-card .ant-card-head-title {
+    font-size: 16px;
+  }
+}
+

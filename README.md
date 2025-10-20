@@ -1,70 +1,165 @@
-# Getting Started with Create React App
+# 💼 Financial Dashboard Admin
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Dashboard administrativo para la gestión financiera de estudiantes y cursos.
 
-## Available Scripts
+## 🚀 Características
 
-In the project directory, you can run:
+- ✅ **Login con Roles** - Sistema de autenticación (Admin/Usuario)
+- ✅ **Dashboard Interactivo** - Estadísticas financieras por curso
+- ✅ **Gestión de Estudiantes** - CRUD completo por curso
+- ✅ **Gestión de Pagos** - Registro con comprobantes de pago
+- ✅ **Gestión de Gastos** - Control de gastos con categorías
+- ✅ **Gestión de Categorías** - Categorías personalizadas por curso
+- ✅ **Selector de Curso** - Cambio dinámico entre cursos
+- ✅ **Diseño Responsive** - Funciona en desktop, tablet y mobile
+- ✅ **Interfaz Moderna** - UI profesional con Ant Design
 
-### `npm start`
+## 🛠️ Tecnologías
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- **React 19** - Framework de JavaScript
+- **React Router DOM** - Navegación
+- **Ant Design** - Componentes UI
+- **Axios** - Cliente HTTP
+- **Moment.js** - Manejo de fechas
+- **CSS3** - Estilos personalizados
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## 📱 Páginas Disponibles
 
-### `npm test`
+### 🔐 Login
+- Autenticación con email y contraseña
+- Roles diferenciados (Admin/Usuario)
+- Credenciales demo incluidas
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### 📊 Dashboard
+- Estadísticas financieras por curso
+- Gráficos de pagos y gastos
+- Tabla de gastos por estudiante
 
-### `npm run build`
+### 👥 Estudiantes
+- Lista de estudiantes por curso
+- Búsqueda y filtrado
+- Gestión completa CRUD
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### 💰 Pagos
+- Registro de pagos con comprobantes
+- Filtros por período y estado
+- Subida de imágenes
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### 💸 Gastos
+- Registro de gastos por categorías
+- Múltiples imágenes por gasto
+- Filtros por categoría
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### ⚙️ Configuraciones
+- Gestión de categorías por curso
+- Montos base configurables
 
-### `npm run eject`
+## 🔧 Instalación Local
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+1. **Clonar el repositorio**:
+   ```bash
+   git clone [url-del-repo]
+   cd financial-dashboard-admin
+   ```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+2. **Instalar dependencias**:
+   ```bash
+   npm install
+   ```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+3. **Configurar variables de entorno**:
+   ```bash
+   cp .env.example .env
+   # Editar .env con dataset de tu backend
+   ```
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+4. **Ejecutar la aplicación**:
+   ```bash
+   npm start
+   ```
 
-## Learn More
+5. **Abrir en el navegador**:
+   ```
+   http://localhost:3000
+   ```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## 🌐 Despliegue en Vercel
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+El frontend está configurado para desplegarse automáticamente en Vercel:
 
-### Code Splitting
+- **Configuración**: `vercel.json` incluido
+- **Build**: `npm run build` automático
+- **Variables de entorno**: Configuradas en Vercel Dashboard
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+### Variables de Entorno Requeridas:
+```env
+REACT_APP_API_URL=https://financial-dashboard-backend.vercel.app/api
+```
 
-### Analyzing the Bundle Size
+## 🎨 Características de Diseño
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### 📱 Responsive Design
+- **Desktop**: Layout completo con sidebar
+- **Tablet**: Adaptación automática
+- **Mobile**: Menú hamburguesa y navegación optimizada
 
-### Making a Progressive Web App
+### 🎯 UX/UI
+- **Ant Design**: Componentes profesionales
+- **Animaciones**: Transiciones suaves
+- **Colores**: Paleta coherente y moderna
+- **Tipografía**: Legible y jerárquica
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+## 🔐 Credenciales Demo
 
-### Advanced Configuration
+### Usuario Admin:
+- **Email**: admin@demo.com
+- **Contraseña**: admin123
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+### Usuario Regular:
+- **Email**: user@demo.com
+- **Contraseña**: user123
 
-### Deployment
+## 📊 Funcionalidades por Rol
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+### 👑 Admin
+- ✅ Acceso completo a todas las funcionalidades
+- ✅ Gestión de cursos, estudiantes, pagos, gastos
+- ✅ Configuración del sistema
 
-### `npm run build` fails to minify
+### 👤 Usuario
+- ✅ Acceso limitado según configuración
+- ✅ Visualización de datos asignados
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+## 🚀 Scripts Disponibles
+
+- `npm start` - Iniciar en modo desarrollo
+- `npm run build` - Construir para producción
+- `npm test` - Ejecutar tests
+- `npm run eject` - Ejectar configuración (no recomendado)
+
+## 📁 Estructura del Proyecto
+
+```
+src/
+├── components/          # Componentes reutilizables
+├── pages/              # Páginas principales
+├── context/            # Context API (CourseContext)
+├── services/           # Servicios (API, Auth)
+├── utils/              # Utilidades
+└── styles/             # Estilos CSS
+```
+
+## 🔗 Integración con Backend
+
+- **API Base**: Configurable via `REACT_APP_API_URL`
+- **Autenticación**: JWT tokens
+- **CORS**: Habilitado en backend
+- **Endpoints**: RESTful API
+
+## 📞 Soporte
+
+Para soporte técnico o reportar bugs, contacta al equipo de desarrollo.
+
+---
+
+**Desarrollado con ❤️ para la gestión financiera educativa**
