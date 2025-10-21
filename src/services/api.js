@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_BACKEND_URL || 'http://localhost:3004/api';
+const API_URL = process.env.REACT_BACKEND_URL || 'https://financial-dashboard-backend-six.vercel.app/api';
 
 const api = axios.create({
   baseURL: API_URL,
