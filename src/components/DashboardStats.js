@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Row, Col, Statistic, Table, message } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import api from '../services/api';
@@ -18,9 +18,9 @@ const DashboardStats = ({ courseId }) => {
     if (courseId) {
       fetchData();
     }
-  }, [courseId]);
+  }, [courseId, fetchData]);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -50,7 +50,7 @@ const DashboardStats = ({ courseId }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
 
   const transformData = (rawData) => {
     const studentMap = new Map();

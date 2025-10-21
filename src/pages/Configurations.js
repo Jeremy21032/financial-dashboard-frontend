@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   Form,
@@ -11,7 +11,6 @@ import {
   Row,
   Col,
   Popconfirm,
-  Modal
 } from 'antd';
 import {
   PlusOutlined,
@@ -36,9 +35,9 @@ const Configurations = () => {
     if (selectedCourseId) {
       fetchCategories();
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, fetchCategories]);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -56,7 +55,7 @@ const Configurations = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCourseId]);
 
   const handleSubmit = async (values) => {
     try {

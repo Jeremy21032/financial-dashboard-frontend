@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   Form,
@@ -50,9 +50,9 @@ const Expenses = () => {
       fetchExpenses();
       fetchCategories();
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, fetchExpenses, fetchCategories]);
 
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
       const url = addCourseIdToQuery('/expenses', selectedCourseId);
@@ -65,9 +65,9 @@ const Expenses = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCourseId]);
 
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     try {
       if (!selectedCourseId) {
         setCategories([]);
@@ -81,7 +81,7 @@ const Expenses = () => {
       message.error('Error al cargar categorías');
       console.error('❌ [Expenses] Error:', error);
     }
-  };
+  }, [selectedCourseId]);
 
   const handleImageChange = ({ file }) => {
     const reader = new FileReader();

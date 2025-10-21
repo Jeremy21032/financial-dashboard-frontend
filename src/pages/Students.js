@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Input, Space, message } from 'antd';
 import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
 import { useCourse } from '../context/CourseContext';
@@ -15,9 +15,9 @@ const Students = () => {
     if (selectedCourseId) {
       fetchStudents();
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, fetchStudents]);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/students?course_id=${selectedCourseId}`);
@@ -27,7 +27,7 @@ const Students = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCourseId]);
 
   const columns = [
     {

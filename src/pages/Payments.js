@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   Form,
@@ -49,9 +49,9 @@ const Payments = () => {
       fetchStudents();
       fetchPayments();
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, fetchStudents, fetchPayments]);
 
-  const fetchStudents = async () => {
+  const fetchStudents = useCallback(async () => {
     try {
       const url = addCourseIdToQuery('/students', selectedCourseId);
       const response = await api.get(url);
@@ -60,9 +60,9 @@ const Payments = () => {
       message.error('Error al cargar estudiantes');
       console.error(error);
     }
-  };
+  }, [selectedCourseId]);
 
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     try {
       setLoading(true);
       const url = addCourseIdToQuery('/payments', selectedCourseId);
@@ -75,7 +75,7 @@ const Payments = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCourseId]);
 
   const handleSubmit = async (values) => {
     try {

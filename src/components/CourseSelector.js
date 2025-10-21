@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Select, Card, message } from 'antd';
 import api from '../services/api';
 import './CourseSelector.css';
@@ -12,9 +12,9 @@ const CourseSelector = ({ onCourseChange }) => {
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [fetchCourses]);
 
-  const fetchCourses = async () => {
+  const fetchCourses = useCallback(async () => {
     try {
       const response = await api.get('/courses/active');
       setCourses(response.data);
@@ -30,7 +30,7 @@ const CourseSelector = ({ onCourseChange }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [onCourseChange]);
 
   const handleChange = (courseId) => {
     setSelectedCourse(courseId);

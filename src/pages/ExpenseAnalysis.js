@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   Row,
   Col,
   Statistic,
-  Select,
   DatePicker,
   Table,
   Progress,
@@ -21,7 +20,6 @@ import {
   ArrowDownOutlined,
   PieChartOutlined,
   BarChartOutlined,
-  DownloadOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
   FileTextOutlined
@@ -32,7 +30,7 @@ import { exportToExcel, exportToPDF, exportToCSV } from '../utils/exportUtils';
 import './ExpenseAnalysis.css';
 
 const { Title, Text } = Typography;
-const { RangePicker } = DatePicker;
+// const { RangePicker } = DatePicker;
 
 const ExpenseAnalysis = () => {
   const { selectedCourseId, selectedCourse } = useCourse();
@@ -48,7 +46,7 @@ const ExpenseAnalysis = () => {
   });
 
   // Obtener gastos del curso seleccionado
-  const fetchExpenses = async () => {
+  const fetchExpenses = useCallback(async () => {
     if (!selectedCourseId) return;
 
     try {
@@ -62,7 +60,7 @@ const ExpenseAnalysis = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedCourseId]);
 
   // Obtener gastos agrupados por categoría
   const fetchExpensesGrouped = async () => {
@@ -79,7 +77,7 @@ const ExpenseAnalysis = () => {
   };
 
   // Obtener categorías del curso seleccionado
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async () => {
     if (!selectedCourseId) return;
 
     try {
@@ -90,7 +88,7 @@ const ExpenseAnalysis = () => {
       message.error('Error al cargar categorías');
       console.error(error);
     }
-  };
+  }, [selectedCourseId]);
 
   // Obtener pagos para calcular balance
   const fetchPayments = async () => {
@@ -107,7 +105,7 @@ const ExpenseAnalysis = () => {
   };
 
   // Calcular estadísticas
-  const calculateStats = async () => {
+  const calculateStats = useCallback(async () => {
     if (!selectedCourseId || expenses.length === 0) return;
 
     try {
@@ -151,7 +149,7 @@ const ExpenseAnalysis = () => {
     } catch (error) {
       console.error('Error al calcular estadísticas:', error);
     }
-  };
+  }, [selectedCourseId, expenses]);
 
   // Calcular tendencia mensual
   const calculateMonthlyTrend = (expenses) => {
@@ -246,13 +244,13 @@ const ExpenseAnalysis = () => {
       fetchExpenses();
       fetchCategories();
     }
-  }, [selectedCourseId]);
+  }, [selectedCourseId, fetchExpenses, fetchCategories]);
 
   useEffect(() => {
     if (expenses.length > 0 && categories.length > 0) {
       calculateStats();
     }
-  }, [expenses, categories]);
+  }, [expenses, categories, calculateStats]);
 
   // Columnas para la tabla de gastos por categoría
   const categoryColumns = [
