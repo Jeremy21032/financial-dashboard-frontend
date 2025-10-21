@@ -31,12 +31,6 @@ const Configurations = () => {
   const { selectedCourseId } = useCourse();
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchCategories();
-    }
-  }, [selectedCourseId, fetchCategories]);
-
   const fetchCategories = useCallback(async () => {
     try {
       setLoading(true);
@@ -56,6 +50,12 @@ const Configurations = () => {
       setLoading(false);
     }
   }, [selectedCourseId]);
+
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchCategories();
+    }
+  }, [selectedCourseId, fetchCategories]);
 
   const handleSubmit = async (values) => {
     try {

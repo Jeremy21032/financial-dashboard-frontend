@@ -14,12 +14,6 @@ const DashboardStats = ({ courseId }) => {
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState([]);
 
-  useEffect(() => {
-    if (courseId) {
-      fetchData();
-    }
-  }, [courseId, fetchData]);
-
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
@@ -51,6 +45,12 @@ const DashboardStats = ({ courseId }) => {
       setLoading(false);
     }
   }, [courseId]);
+
+  useEffect(() => {
+    if (courseId) {
+      fetchData();
+    }
+  }, [courseId, fetchData]);
 
   const transformData = (rawData) => {
     const studentMap = new Map();

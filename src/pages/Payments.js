@@ -44,13 +44,6 @@ const Payments = () => {
   const { selectedCourseId } = useCourse();
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchStudents();
-      fetchPayments();
-    }
-  }, [selectedCourseId, fetchStudents, fetchPayments]);
-
   const fetchStudents = useCallback(async () => {
     try {
       const url = addCourseIdToQuery('/students', selectedCourseId);
@@ -76,6 +69,13 @@ const Payments = () => {
       setLoading(false);
     }
   }, [selectedCourseId]);
+
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchStudents();
+      fetchPayments();
+    }
+  }, [selectedCourseId, fetchStudents, fetchPayments]);
 
   const handleSubmit = async (values) => {
     try {

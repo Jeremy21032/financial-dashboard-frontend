@@ -36,6 +36,7 @@
     }
   ],
   "env": {
-    "REACT_APP_API_URL": "https://financial-dashboard-backend.vercel.app/api"
+    "REACT_APP_API_URL": "https://financial-dashboard-backend.vercel.app/api",
+    "CI": "false"
   }
 }

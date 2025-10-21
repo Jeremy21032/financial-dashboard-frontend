@@ -4,7 +4,6 @@ import {
   Row,
   Col,
   Statistic,
-  DatePicker,
   Table,
   Progress,
   Typography,
@@ -30,7 +29,6 @@ import { exportToExcel, exportToPDF, exportToCSV } from '../utils/exportUtils';
 import './ExpenseAnalysis.css';
 
 const { Title, Text } = Typography;
-// const { RangePicker } = DatePicker;
 
 const ExpenseAnalysis = () => {
   const { selectedCourseId, selectedCourse } = useCourse();
@@ -63,7 +61,7 @@ const ExpenseAnalysis = () => {
   }, [selectedCourseId]);
 
   // Obtener gastos agrupados por categoría
-  const fetchExpensesGrouped = async () => {
+  const fetchExpensesGrouped = useCallback(async () => {
     if (!selectedCourseId) return;
 
     try {
@@ -74,7 +72,7 @@ const ExpenseAnalysis = () => {
       console.error('Error al cargar gastos agrupados:', error);
       return [];
     }
-  };
+  }, [selectedCourseId]);
 
   // Obtener categorías del curso seleccionado
   const fetchCategories = useCallback(async () => {
@@ -91,7 +89,7 @@ const ExpenseAnalysis = () => {
   }, [selectedCourseId]);
 
   // Obtener pagos para calcular balance
-  const fetchPayments = async () => {
+  const fetchPayments = useCallback(async () => {
     if (!selectedCourseId) return;
 
     try {
@@ -102,7 +100,7 @@ const ExpenseAnalysis = () => {
       console.error('Error al cargar pagos:', error);
       return [];
     }
-  };
+  }, [selectedCourseId]);
 
   // Calcular estadísticas
   const calculateStats = useCallback(async () => {
@@ -149,7 +147,7 @@ const ExpenseAnalysis = () => {
     } catch (error) {
       console.error('Error al calcular estadísticas:', error);
     }
-  }, [selectedCourseId, expenses]);
+  }, [selectedCourseId, expenses, fetchExpensesGrouped, fetchPayments]);
 
   // Calcular tendencia mensual
   const calculateMonthlyTrend = (expenses) => {

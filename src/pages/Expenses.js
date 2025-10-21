@@ -45,13 +45,6 @@ const Expenses = () => {
   const { selectedCourseId } = useCourse();
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchExpenses();
-      fetchCategories();
-    }
-  }, [selectedCourseId, fetchExpenses, fetchCategories]);
-
   const fetchExpenses = useCallback(async () => {
     try {
       setLoading(true);
@@ -82,6 +75,13 @@ const Expenses = () => {
       console.error('❌ [Expenses] Error:', error);
     }
   }, [selectedCourseId]);
+
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchExpenses();
+      fetchCategories();
+    }
+  }, [selectedCourseId, fetchExpenses, fetchCategories]);
 
   const handleImageChange = ({ file }) => {
     const reader = new FileReader();

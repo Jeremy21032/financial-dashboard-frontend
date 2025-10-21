@@ -11,12 +11,6 @@ const Students = () => {
   const [searchText, setSearchText] = useState('');
   const { selectedCourseId } = useCourse();
 
-  useEffect(() => {
-    if (selectedCourseId) {
-      fetchStudents();
-    }
-  }, [selectedCourseId, fetchStudents]);
-
   const fetchStudents = useCallback(async () => {
     try {
       setLoading(true);
@@ -28,6 +22,12 @@ const Students = () => {
       setLoading(false);
     }
   }, [selectedCourseId]);
+
+  useEffect(() => {
+    if (selectedCourseId) {
+      fetchStudents();
+    }
+  }, [selectedCourseId, fetchStudents]);
 
   const columns = [
     {

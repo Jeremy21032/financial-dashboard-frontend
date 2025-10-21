@@ -10,10 +10,6 @@ const CourseSelector = ({ onCourseChange }) => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCourses();
-  }, [fetchCourses]);
-
   const fetchCourses = useCallback(async () => {
     try {
       const response = await api.get('/courses/active');
@@ -31,6 +27,10 @@ const CourseSelector = ({ onCourseChange }) => {
       setLoading(false);
     }
   }, [onCourseChange]);
+
+  useEffect(() => {
+    fetchCourses();
+  }, [fetchCourses]);
 
   const handleChange = (courseId) => {
     setSelectedCourse(courseId);
