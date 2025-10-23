@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_BACKEND_URL || 'https://financial-dashboard-backend-six.vercel.app/api';
+const API_URL = process.env.REACT_APP_BACKEND_URL ;
 
 const api = axios.create({
   baseURL: API_URL,
@@ -9,30 +9,10 @@ const api = axios.create({
   },
 });
 
-// Interceptor para agregar el token de autenticación
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
 // Interceptor para manejar errores
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token inválido o expirado
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/';
-    }
     return Promise.reject(error);
   }
 );
@@ -60,6 +40,31 @@ export const addCourseIdToQuery = (url, courseId) => {
   
   const separator = url.includes('?') ? '&' : '?';
   return `${url}${separator}course_id=${courseId}`;
+};
+
+// Función para obtener configuración por curso
+export const getConfig = async (courseId) => {
+  try {
+    const response = await api.get(`/config/?course_id=${courseId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error al obtener configuración:', error);
+    throw error;
+  }
+};
+
+// Función para actualizar configuración por curso
+export const updateConfig = async (courseId, totalGoal) => {
+  try {
+    const response = await api.put('/config/', {
+      course_id: courseId,
+      total_goal: totalGoal
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error al actualizar configuración:', error);
+    throw error;
+  }
 };
 
 export default api;

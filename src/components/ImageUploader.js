@@ -8,7 +8,17 @@ const ImageUploader = ({ onUpload, value }) => {
   const handleImageChange = (info) => {
     const { file } = info;
     
-    if (file) {
+    // Verificar que el archivo sea válido y sea un Blob
+    if (file && file.originFileObj instanceof Blob) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64Image = reader.result;
+        setImagePreview(base64Image);
+        onUpload(base64Image);
+      };
+      reader.readAsDataURL(file.originFileObj);
+    } else if (file && file instanceof Blob) {
+      // Si el archivo es directamente un Blob
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64Image = reader.result;
@@ -16,6 +26,8 @@ const ImageUploader = ({ onUpload, value }) => {
         onUpload(base64Image);
       };
       reader.readAsDataURL(file);
+    } else {
+      console.warn('Archivo no válido:', file);
     }
   };
 
@@ -25,15 +37,25 @@ const ImageUploader = ({ onUpload, value }) => {
   };
 
   const beforeUpload = (file) => {
+    // Verificar que el archivo sea válido
+    if (!file || !(file instanceof Blob)) {
+      message.error('Archivo no válido');
+      return false;
+    }
+
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
     if (!isJpgOrPng) {
       message.error('Solo puedes subir archivos JPG/PNG!');
+      return false;
     }
+    
     const isLt2M = file.size / 1024 / 1024 < 2;
     if (!isLt2M) {
       message.error('La imagen debe ser menor a 2MB!');
+      return false;
     }
-    return isJpgOrPng && isLt2M;
+    
+    return false; // Retornar false para evitar upload automático
   };
 
   return (
