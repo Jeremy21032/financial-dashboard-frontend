@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { logout, getCurrentUser, ROLES } from '../services/authService';
 import { useCourse } from '../context/CourseContext';
 import CourseSelector from './CourseSelector';
 import './Layout.css';
@@ -8,19 +7,14 @@ import './Layout.css';
 const Layout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const user = getCurrentUser();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { setSelectedCourseId } = useCourse();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: '📊' },
     { path: '/students', label: 'Estudiantes', icon: '👥' },
     { path: '/payments', label: 'Pagos', icon: '💰' },
+    { path: '/payment-summary', label: 'Resumen de Pagos', icon: '📋' },
     { path: '/expenses', label: 'Gastos', icon: '💸' },
     { path: '/expense-analysis', label: 'Análisis de Gastos', icon: '📈' },
     { path: '/configurations', label: 'Configuraciones', icon: '⚙️' },
@@ -60,20 +54,6 @@ const Layout = ({ children }) => {
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="user-info">
-            <div className="user-avatar">{user.name.charAt(0)}</div>
-            <div className="user-details">
-              <div className="user-name">{user.name}</div>
-              <div className="user-role">
-                {user.role === ROLES.ADMIN ? 'Administrador' : 'Usuario'}
-              </div>
-            </div>
-          </div>
-          <button className="logout-btn" onClick={handleLogout}>
-            Salir
-          </button>
-        </div>
       </aside>
 
       <main className="main-content">

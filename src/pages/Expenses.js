@@ -84,11 +84,23 @@ const Expenses = () => {
   }, [selectedCourseId, fetchExpenses, fetchCategories]);
 
   const handleImageChange = ({ file }) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setImageFiles(prev => [...prev, reader.result]);
-    };
-    reader.readAsDataURL(file);
+    // Verificar que el archivo sea válido y sea un Blob
+    if (file && file.originFileObj instanceof Blob) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageFiles(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file.originFileObj);
+    } else if (file && file instanceof Blob) {
+      // Si el archivo es directamente un Blob
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImageFiles(prev => [...prev, reader.result]);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      console.warn('Archivo no válido:', file);
+    }
   };
 
   const removeImage = (index) => {

@@ -1,85 +1,76 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { CourseProvider } from './context/CourseContext';
-import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
 import Payments from './pages/Payments';
+import PaymentSummary from './pages/PaymentSummary';
 import Expenses from './pages/Expenses';
 import ExpenseAnalysis from './pages/ExpenseAnalysis';
 import Configurations from './pages/Configurations';
 import Layout from './components/Layout';
 import './App.css';
 
-const PrivateRoute = ({ children }) => {
-  const token = localStorage.getItem('token');
-  return token ? children : <Navigate to="/" />;
-};
-
 function App() {
   return (
     <Router>
       <CourseProvider>
         <Routes>
-          <Route path="/" element={<Login />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route 
             path="/dashboard" 
             element={
-              <PrivateRoute>
-                <Layout>
-                  <Dashboard />
-                </Layout>
-              </PrivateRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
             } 
           />
           <Route 
             path="/students" 
             element={
-              <PrivateRoute>
-                <Layout>
-                  <Students />
-                </Layout>
-              </PrivateRoute>
+              <Layout>
+                <Students />
+              </Layout>
             } 
           />
           <Route 
             path="/payments" 
             element={
-              <PrivateRoute>
-                <Layout>
-                  <Payments />
-                </Layout>
-              </PrivateRoute>
+              <Layout>
+                <Payments />
+              </Layout>
+            } 
+          />
+          <Route 
+            path="/payment-summary" 
+            element={
+              <Layout>
+                <PaymentSummary />
+              </Layout>
             } 
           />
           <Route 
             path="/expenses" 
             element={
-              <PrivateRoute>
-                <Layout>
-                  <Expenses />
-                </Layout>
-              </PrivateRoute>
+              <Layout>
+                <Expenses />
+              </Layout>
             } 
           />
           <Route 
             path="/expense-analysis" 
             element={
-              <PrivateRoute>
-                <Layout>
-                  <ExpenseAnalysis />
-                </Layout>
-              </PrivateRoute>
+              <Layout>
+                <ExpenseAnalysis />
+              </Layout>
             } 
           />
           <Route 
             path="/configurations" 
             element={
-              <PrivateRoute>
-                <Layout>
-                  <Configurations />
-                </Layout>
-              </PrivateRoute>
+              <Layout>
+                <Configurations />
+              </Layout>
             } 
           />
         </Routes>

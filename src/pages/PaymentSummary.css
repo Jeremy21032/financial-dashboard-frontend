@@ -1,0 +1,177 @@
+.payment-summary-container {
+  padding: 20px;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.summary-cards {
+  margin-bottom: 24px;
+}
+
+.summary-cards .ant-card {
+  text-align: center;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.summary-cards .ant-statistic-title {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.summary-cards .ant-statistic-content {
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.filters-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.students-summary-card {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.student-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  padding-right: 20px;
+}
+
+.student-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.student-icon {
+  color: #1890ff;
+  font-size: 16px;
+}
+
+.student-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #262626;
+}
+
+.student-stats {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  color: #666;
+}
+
+.stat .anticon {
+  color: #1890ff;
+}
+
+/* Collapse personalizado */
+.ant-collapse {
+  border: none;
+  background: transparent;
+}
+
+.ant-collapse-item {
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.ant-collapse-item-active {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.ant-collapse-header {
+  padding: 16px 20px;
+  background: white;
+  border-radius: 8px;
+  border: none;
+}
+
+.ant-collapse-content {
+  border: none;
+  background: #fafafa;
+  border-radius: 0 0 8px 8px;
+}
+
+.ant-collapse-content-box {
+  padding: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .student-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .student-stats {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .payment-summary-container {
+    padding: 10px;
+  }
+}
+
+@media (max-width: 576px) {
+  .summary-cards .ant-statistic-content {
+    font-size: 20px;
+  }
+  
+  .student-name {
+    font-size: 14px;
+  }
+  
+  .stat {
+    font-size: 12px;
+  }
+}
+
+/* Tabla de pagos */
+.ant-table-small .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+}
+
+.ant-table-small .ant-table-tbody > tr > td {
+  padding: 8px 12px;
+}
+
+/* Tags personalizados */
+.ant-tag {
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+/* Cards pequeñas dentro del collapse */
+.ant-card-small > .ant-card-body {
+  padding: 12px;
+}
+
+.ant-card-small .ant-statistic-title {
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.ant-card-small .ant-statistic-content {
+  font-size: 18px;
+}

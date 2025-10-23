@@ -119,27 +119,6 @@
   display: none;
 }
 
-.logout-btn {
-  width: 100%;
-  padding: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  color: white;
-  cursor: pointer;
-  font-size: 14px;
-  transition: all 0.2s;
-}
-
-.logout-btn:hover {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.sidebar.closed .logout-btn {
-  padding: 10px;
-  font-size: 20px;
-}
-
 /* Main Content */
 .main-content {
   flex: 1;

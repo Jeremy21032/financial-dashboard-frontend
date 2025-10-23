@@ -9,7 +9,7 @@ import {
   message,
   Select,
 } from "antd";
-import api from "../services/api";
+import api, { getConfig, updateConfig } from "../services/api";
 import { useCourse } from "../context/CourseContext";
 import moment from "moment";
 import * as XLSX from "xlsx";
@@ -22,14 +22,15 @@ const PaymentsByStudent = () => {
   const [loading, setLoading] = useState(true);
   const [totalGoal, setTotalGoal] = useState(47.56);
   const [totalSpentGoal, setTotalSpentGoal] = useState(57.66);
+  const [totalExpected, setTotalExpected] = useState(0);
   const [statusFilter, setStatusFilter] = useState("");
   const { selectedCourseId } = useCourse();
 
   useEffect(() => {
     if (selectedCourseId) {
       fetchPaymentsByStudent();
+      fetchConfig();
     }
-    fetchConfig();
   }, [selectedCourseId]);
 
   const fetchPaymentsByStudent = async () => {
@@ -37,6 +38,10 @@ const PaymentsByStudent = () => {
       setLoading(true);
       const response = await api.get(`/payments/grouped?course_id=${selectedCourseId}`);
       setData(response.data);
+      
+      // Calcular total esperado por estudiante
+      calculateTotalExpected(response.data);
+      
       setLoading(false);
     } catch (error) {
       console.error('Error al cargar pagos por estudiante:', error);
@@ -44,25 +49,46 @@ const PaymentsByStudent = () => {
     }
   };
 
+  const calculateTotalExpected = (paymentsData) => {
+    if (paymentsData && paymentsData.length > 0 && totalGoal > 0) {
+      const totalExpectedPerStudent = totalGoal / paymentsData.length;
+      setTotalExpected(totalExpectedPerStudent);
+    } else {
+      setTotalExpected(0);
+    }
+  };
+
   const fetchConfig = async () => {
     try {
-      const response = await api.get("/config");
-      if (response.data.total_goal) setTotalGoal(Number(response.data.total_goal));
-      if (response.data.total_spent_goal) setTotalSpentGoal(Number(response.data.total_spent_goal));
+      if (!selectedCourseId) return;
+      
+      const config = await getConfig(selectedCourseId);
+      if (config.total_goal) {
+        setTotalGoal(Number(config.total_goal));
+        // Recalcular total esperado por estudiante
+        calculateTotalExpected(data);
+      }
+      // Mantener totalSpentGoal como estaba (no viene del backend)
     } catch (error) {
       console.error("Error al obtener configuración:", error);
+      // Si no hay configuración para el curso, usar valores por defecto
+      setTotalGoal(47.56);
     }
   };
 
   const updateGoals = async () => {
     try {
-      await api.put("/config", {
-        total_goal: totalGoal,
-        total_spent_goal: totalSpentGoal,
-      });
-      message.success("Montos actualizados correctamente");
+      if (!selectedCourseId) {
+        message.error("No hay curso seleccionado");
+        return;
+      }
+      
+      await updateConfig(selectedCourseId, totalGoal);
+      // Recalcular total esperado por estudiante después de actualizar
+      calculateTotalExpected(data);
+      message.success("Monto total actualizado correctamente");
     } catch (error) {
-      message.error("Error al actualizar montos");
+      message.error("Error al actualizar monto total");
       console.error("Error:", error);
     }
   };
@@ -248,6 +274,9 @@ const PaymentsByStudent = () => {
           step={0.01}
           style={{ width: 100 }}
         />
+        <span style={{ fontWeight: 'bold', color: '#1890ff' }}>
+          Total Esperado por Estudiante: ${totalExpected.toFixed(2)}
+        </span>
         <Button type="primary" onClick={updateGoals}>
           Update Goals
         </Button>
