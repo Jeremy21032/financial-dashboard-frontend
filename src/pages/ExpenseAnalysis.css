@@ -42,17 +42,6 @@
   font-weight: 600;
 }
 
-/* Tabla de categorías */
-.ant-table-thead > tr > th {
-  background: #fafafa;
-  font-weight: 600;
-  color: #333;
-}
-
-.ant-table-tbody > tr:hover > td {
-  background: #f0f8ff;
-}
-
 /* Progress bars */
 .ant-progress-bg {
   transition: all 0.3s ease;

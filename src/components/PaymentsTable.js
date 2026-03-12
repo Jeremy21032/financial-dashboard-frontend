@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Table, Form, Input, InputNumber, Popconfirm, Select, Image, Button, DatePicker, Tag, Space, message } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useCourse } from '../context/CourseContext';
-import api from '../services/api';
+import api, { getPaymentImageUrl } from '../services/api';
 import moment from 'moment';
 
 const EditableCell = ({ editing, dataIndex, title, inputType, children, ...restProps }) => {
@@ -159,7 +159,10 @@ const PaymentsTable = ({ payments, setPayments }) => {
       title: 'Receipt',
       dataIndex: 'payment_image',
       key: 'payment_image',
-      render: (_, record) => record.payment_image ? <Image width={100} src={record.payment_image} /> : 'Sin imagen',
+      render: (_, record) => {
+        const src = getPaymentImageUrl(record.payment_image);
+        return src ? <Image width={100} src={src} alt="Comprobante" /> : 'Sin imagen';
+      },
     },
     {
       title: 'Actions',

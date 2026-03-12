@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Table,
   Form,
@@ -41,6 +41,7 @@ const Expenses = () => {
   const [searchText, setSearchText] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [imageFiles, setImageFiles] = useState([]);
+  const uploadContainerRef = useRef(null);
   
   const { selectedCourseId } = useCourse();
   const [form] = Form.useForm();
@@ -83,29 +84,107 @@ const Expenses = () => {
     }
   }, [selectedCourseId, fetchExpenses, fetchCategories]);
 
-  const handleImageChange = ({ file }) => {
-    // Verificar que el archivo sea válido y sea un Blob
-    if (file && file.originFileObj instanceof Blob) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageFiles(prev => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file.originFileObj);
-    } else if (file && file instanceof Blob) {
-      // Si el archivo es directamente un Blob
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImageFiles(prev => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
-    } else {
-      console.warn('Archivo no válido:', file);
+  const validateFile = useCallback((file) => {
+    if (!file || !(file instanceof Blob)) {
+      message.error('Archivo no válido');
+      return false;
     }
-  };
+
+    const isImage = file.type?.startsWith('image/');
+    if (!isImage) {
+      message.error('Solo puedes subir archivos de imagen');
+      return false;
+    }
+
+    const isLt3M = file.size / 1024 / 1024 < 3;
+    if (!isLt3M) {
+      message.error('La imagen debe ser menor a 3MB');
+      return false;
+    }
+
+    return true;
+  }, []);
+
+  const convertToJpegBase64 = useCallback((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const imgElement = new window.Image();
+        imgElement.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = imgElement.width;
+            canvas.height = imgElement.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(imgElement, 0, 0);
+            const jpegData = canvas.toDataURL('image/jpeg', 0.92);
+            resolve(jpegData);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        imgElement.onerror = (err) => reject(err);
+        imgElement.src = reader.result;
+      };
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  }, []);
+
+  const processFile = useCallback(async (file) => {
+    if (!file || !validateFile(file)) return;
+
+    try {
+      const jpegBase64 = await convertToJpegBase64(file);
+      setImageFiles((prev) => [...prev, jpegBase64]);
+    } catch (error) {
+      console.error('Error convirtiendo la imagen a JPEG:', error);
+      message.error('No se pudo procesar la imagen. Intenta con otro archivo.');
+    }
+  }, [convertToJpegBase64, validateFile]);
+
+  const handleImageChange = useCallback((info) => {
+    const file = info?.file?.originFileObj || info?.file || info;
+
+    if (!file) {
+      console.warn('Archivo no válido en handleImageChange:', info);
+      return;
+    }
+
+    processFile(file);
+  }, [processFile]);
 
   const removeImage = (index) => {
     setImageFiles(prev => prev.filter((_, i) => i !== index));
   };
+
+  const handlePaste = useCallback((event) => {
+    const items = event.clipboardData?.items;
+    if (!items || !items.length) {
+      message.warning('No se encontró ninguna imagen en el portapapeles');
+      return;
+    }
+
+    const imageItems = Array.from(items).filter((item) =>
+      item.type && item.type.startsWith('image/')
+    );
+
+    if (!imageItems.length) {
+      message.warning('No se encontró ninguna imagen en el portapapeles');
+      return;
+    }
+
+    event.preventDefault();
+
+    imageItems.forEach((item) => {
+      const file = item.getAsFile();
+      if (file) {
+        processFile(file);
+      }
+    });
+
+    message.success('Imagen pegada desde el portapapeles');
+  }, [processFile]);
 
   const handleSubmit = async (values) => {
     try {
@@ -414,19 +493,33 @@ const Expenses = () => {
                 </Col>
                 <Col xs={24}>
                   <Form.Item label="Imágenes del gasto">
-                    <Upload
-                      multiple
-                      showUploadList={false}
-                      beforeUpload={(file) => {
-                        handleImageChange({ file });
-                        return false;
-                      }}
-                      accept="image/*"
+                    <div
+                      ref={uploadContainerRef}
+                      onPaste={handlePaste}
+                      tabIndex={0}
+                      onClick={() => uploadContainerRef.current?.focus()}
+                      className="image-uploader-container"
                     >
-                      <Button icon={<UploadOutlined />}>
-                        Subir Imágenes
-                      </Button>
-                    </Upload>
+                      <Upload
+                        multiple
+                        showUploadList={false}
+                        beforeUpload={(file) => {
+                          if (!validateFile(file)) {
+                            return Upload.LIST_IGNORE;
+                          }
+                          processFile(file);
+                          return Upload.LIST_IGNORE;
+                        }}
+                        accept="image/*"
+                      >
+                        <Button icon={<UploadOutlined />}>
+                          Subir Imágenes
+                        </Button>
+                      </Upload>
+                      <div style={{ fontSize: 12, color: '#666', marginTop: 8 }}>
+                        También puedes pegar imágenes copiadas (Ctrl/Cmd + V).
+                      </div>
+                    </div>
                     <div className="image-preview-container">
                       {imageFiles.map((img, index) => (
                         <div key={index} className="image-preview-item">

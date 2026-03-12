@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Table, Row, Col, Statistic, Collapse, Tag, Space, Input, Select, InputNumber, Button, message } from 'antd';
-import { SearchOutlined, UserOutlined, DollarOutlined, CheckCircleOutlined, ExclamationCircleOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Card, Table, Row, Col, Statistic, Collapse, Tag, Space, Input, Select, InputNumber, Button, message, Image } from 'antd';
+import { SearchOutlined, UserOutlined, DollarOutlined, CheckCircleOutlined, ExclamationCircleOutlined, DownloadOutlined, RightOutlined, EyeOutlined } from '@ant-design/icons';
 import { useCourse } from '../context/CourseContext';
-import api, { addCourseIdToQuery, getConfig } from '../services/api';
+import api, { addCourseIdToQuery, getConfig, getPaymentImageUrl } from '../services/api';
 import moment from 'moment';
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
@@ -256,6 +256,26 @@ const PaymentSummary = () => {
         return <Tag color={color}>{status}</Tag>;
       },
     },
+    {
+      title: 'Comprobante',
+      dataIndex: 'payment_image',
+      key: 'payment_image',
+      render: (image) => {
+        const src = getPaymentImageUrl(image);
+        return src ? (
+          <Image
+            src={src}
+            alt="Comprobante"
+            width={50}
+            height={50}
+            style={{ objectFit: 'cover', borderRadius: 4 }}
+            preview={{ mask: <EyeOutlined /> }}
+          />
+        ) : (
+          <span style={{ color: '#999' }}>Sin imagen</span>
+        );
+      },
+    },
   ];
 
   return (
@@ -406,39 +426,43 @@ const PaymentSummary = () => {
         </Row>
       </Card>
 
-      {/* Resumen por Estudiante */}
+      {/* Resumen por Estudiante - Vista en tarjetas mobile-first */}
       <Card title="Resumen por Estudiante" className="students-summary-card">
-        <Collapse accordion>
+        <Collapse accordion className="student-summary-collapse" expandIcon={() => null}>
           {filteredStudents.map(student => {
             const summary = calculateStudentSummary(student.id);
+            const isUpToDate = summary.difference >= 0;
             
             return (
               <Panel
                 key={student.id}
                 header={
-                  <div className="student-header">
-                    <div className="student-info">
-                      <UserOutlined className="student-icon" />
-                      <span className="student-name">{student.name}</span>
-                    </div>
-                    <div className="student-stats">
-                      <Space>
-                        <span className="stat">
+                  <div className="student-summary-card-header">
+                    <RightOutlined className="student-summary-chevron" />
+                    <UserOutlined className="student-summary-icon" />
+                    <div className="student-summary-content">
+                      <div className="student-summary-name">
+                        {student.name.toUpperCase()}
+                      </div>
+                      <div className="student-summary-row">
+                        <span className="student-summary-amount">
                           <DollarOutlined /> ${summary.totalCollected.toFixed(2)}
                         </span>
-                        <span className="stat">
+                        <span className="student-summary-payments">
                           <CheckCircleOutlined /> {summary.paymentCount} pagos
                         </span>
-                        {summary.difference >= 0 ? (
-                          <Tag color="green" icon={<CheckCircleOutlined />}>
-                            Al día
-                          </Tag>
+                      </div>
+                      <div className="student-summary-status-wrap">
+                        {isUpToDate ? (
+                          <span className="student-summary-badge student-summary-badge-ok">
+                            <CheckCircleOutlined /> Al día
+                          </span>
                         ) : (
-                          <Tag color="red" icon={<ExclamationCircleOutlined />}>
-                            Pendiente: ${Math.abs(summary.difference).toFixed(2)}
-                          </Tag>
+                          <span className="student-summary-badge student-summary-badge-pending">
+                            <ExclamationCircleOutlined /> Pendiente: ${Math.abs(summary.difference).toFixed(2)}
+                          </span>
                         )}
-                      </Space>
+                      </div>
                     </div>
                   </div>
                 }
@@ -490,6 +514,7 @@ const PaymentSummary = () => {
                       rowKey="id"
                       pagination={false}
                       size="small"
+                      scroll={{ x: 'max-content' }}
                     />
                   </div>
                 ) : (
