@@ -278,6 +278,7 @@ const Configurations = () => {
               showTotal: (total, range) =>
                 `${range[0]}-${range[1]} de ${total} categorías`,
             }}
+            scroll={{ x: 'max-content' }}
             className="categories-table"
           />
         </div>

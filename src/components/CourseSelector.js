@@ -40,15 +40,7 @@ const CourseSelector = ({ onCourseChange }) => {
   const selectedCourseData = courses.find(c => c.id === selectedCourse);
 
   return (
-    <Card 
-      className="course-selector-card"
-      style={{ 
-        marginBottom: '24px',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        border: 'none'
-      }}
-      styles={{ body: { padding: '16px 24px' } }}
-    >
+    <Card className="course-selector-card">
       <div className="course-selector-content">
         <span className="course-selector-label">
           📚 Seleccionar Curso:

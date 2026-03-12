@@ -251,6 +251,8 @@ const PaymentsByStudent = () => {
         dataSource={record.payments}
         rowKey="payment_id"
         pagination={false}
+        size="small"
+        scroll={{ x: 'max-content' }}
       />
     );
   };
@@ -303,6 +305,7 @@ const PaymentsByStudent = () => {
         rowKey="studentID"
         loading={loading}
         expandable={{ expandedRowRender }}
+        scroll={{ x: 'max-content' }}
       />
     </Card>
   );

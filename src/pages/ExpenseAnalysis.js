@@ -419,6 +419,7 @@ const ExpenseAnalysis = () => {
                   pagination={false}
                   size="small"
                   rowKey="category"
+                  scroll={{ x: 'max-content' }}
                 />
               </Card>
             </Col>

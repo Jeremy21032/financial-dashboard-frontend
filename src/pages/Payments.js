@@ -23,7 +23,7 @@ import {
   EyeOutlined
 } from '@ant-design/icons';
 import { useCourse } from '../context/CourseContext';
-import api, { addCourseIdToQuery, addCourseId } from '../services/api';
+import api, { addCourseIdToQuery, addCourseId, getPaymentImageUrl } from '../services/api';
 import ImageUploader from '../components/ImageUploader';
 import moment from 'moment';
 import './Payments.css';
@@ -204,10 +204,11 @@ const Payments = () => {
       title: 'Comprobante',
       dataIndex: 'payment_image',
       key: 'payment_image',
-      render: (image) => (
-        image ? (
+      render: (image) => {
+        const src = getPaymentImageUrl(image);
+        return src ? (
           <Image
-            src={image}
+            src={src}
             alt="Comprobante"
             width={50}
             height={50}
@@ -218,8 +219,8 @@ const Payments = () => {
           />
         ) : (
           <span style={{ color: '#999' }}>Sin imagen</span>
-        )
-      ),
+        );
+      },
     },
     {
       title: 'Acciones',

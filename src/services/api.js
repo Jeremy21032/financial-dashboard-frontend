@@ -1,6 +1,25 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL ;
+const API_URL = process.env.REACT_APP_BACKEND_URL;
+const API_ORIGIN = API_URL ? new URL(API_URL).origin : '';
+
+/**
+ * Devuelve la URL válida para mostrar payment_image.
+ * - Si el backend devuelve base64 (data:image/...) o URL absoluta (http...), se usa tal cual.
+ * - Si devuelve ruta relativa (ej. /media/payments/xxx.jpg), se concatena con el origen del API.
+ */
+export const getPaymentImageUrl = (paymentImage) => {
+  if (!paymentImage || typeof paymentImage !== 'string') return null;
+  const trimmed = paymentImage.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('data:') || trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed;
+  }
+  if (API_ORIGIN && trimmed.startsWith('/')) {
+    return `${API_ORIGIN}${trimmed}`;
+  }
+  return trimmed;
+};
 
 const api = axios.create({
   baseURL: API_URL,
