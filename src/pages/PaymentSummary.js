@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, Table, Row, Col, Statistic, Collapse, Tag, Space, Input, Select, InputNumber, Button, message, Image } from 'antd';
 import { SearchOutlined, UserOutlined, DollarOutlined, CheckCircleOutlined, ExclamationCircleOutlined, DownloadOutlined, RightOutlined, EyeOutlined } from '@ant-design/icons';
 import { useCourse } from '../context/CourseContext';
@@ -20,6 +20,8 @@ const PaymentSummary = () => {
   const [totalGoal, setTotalGoal] = useState(0);
   const [customLimit, setCustomLimit] = useState(0);
   const [exportFilter, setExportFilter] = useState('all'); // 'all', 'up_to_date', 'pending', 'with_payments', 'without_payments'
+  /** Orden de la lista de estudiantes: default (como en API), pendientes primero, al día primero */
+  const [studentListSort, setStudentListSort] = useState('default');
   const { selectedCourseId } = useCourse();
 
   const fetchStudents = useCallback(async () => {
@@ -106,6 +108,29 @@ const PaymentSummary = () => {
   const filteredStudents = students.filter(student => 
     student.name.toLowerCase().includes(searchText.toLowerCase())
   );
+
+  const studentsSortedByPaymentStatus = useMemo(() => {
+    const list = [...filteredStudents];
+    const isPending = (studentId) => calculateStudentSummary(studentId).difference < 0;
+    const tieBreak = (a, b) => a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
+
+    if (studentListSort === 'pending_first') {
+      list.sort((a, b) => {
+        const pa = isPending(a.id) ? 0 : 1;
+        const pb = isPending(b.id) ? 0 : 1;
+        if (pa !== pb) return pa - pb;
+        return tieBreak(a, b);
+      });
+    } else if (studentListSort === 'up_to_date_first') {
+      list.sort((a, b) => {
+        const pa = isPending(a.id) ? 1 : 0;
+        const pb = isPending(b.id) ? 1 : 0;
+        if (pa !== pb) return pa - pb;
+        return tieBreak(a, b);
+      });
+    }
+    return list;
+  }, [filteredStudents, studentListSort, payments, selectedPeriod, customLimit, totalGoal]);
 
   // Calcular totales generales
   const generalTotals = students.reduce((totals, student) => {
@@ -402,18 +427,20 @@ const PaymentSummary = () => {
 
       {/* Filtros */}
       <Card className="filters-card" style={{ marginBottom: 16 }}>
-        <Row gutter={[16, 16]} align="middle">
+        <Row gutter={[16, 16]} align="top">
           <Col xs={24} sm={12} md={8}>
+            <span style={{ display: 'block', marginBottom: 4 }}>Buscar estudiante</span>
             <Input
-              placeholder="Buscar estudiante"
+              placeholder="Nombre…"
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
               prefix={<SearchOutlined />}
             />
           </Col>
           <Col xs={24} sm={12} md={8}>
+            <span style={{ display: 'block', marginBottom: 4 }}>Período</span>
             <Select
-              placeholder="Filtrar por período"
+              placeholder="Todos los períodos"
               value={selectedPeriod}
               onChange={setSelectedPeriod}
               allowClear
@@ -423,13 +450,25 @@ const PaymentSummary = () => {
               <Option value="second">Segundo Período</Option>
             </Select>
           </Col>
+          <Col xs={24} sm={12} md={8}>
+            <span style={{ display: 'block', marginBottom: 4 }}>Ordenar por estado de pago</span>
+            <Select
+              value={studentListSort}
+              onChange={setStudentListSort}
+              style={{ width: '100%' }}
+            >
+              <Option value="default">Orden original</Option>
+              <Option value="pending_first">Pendientes primero</Option>
+              <Option value="up_to_date_first">Al día primero</Option>
+            </Select>
+          </Col>
         </Row>
       </Card>
 
       {/* Resumen por Estudiante - Vista en tarjetas mobile-first */}
       <Card title="Resumen por Estudiante" className="students-summary-card">
         <Collapse accordion className="student-summary-collapse" expandIcon={() => null}>
-          {filteredStudents.map(student => {
+          {studentsSortedByPaymentStatus.map(student => {
             const summary = calculateStudentSummary(student.id);
             const isUpToDate = summary.difference >= 0;
             
@@ -441,8 +480,21 @@ const PaymentSummary = () => {
                     <RightOutlined className="student-summary-chevron" />
                     <UserOutlined className="student-summary-icon" />
                     <div className="student-summary-content">
-                      <div className="student-summary-name">
-                        {student.name.toUpperCase()}
+                      <div className="student-summary-name-row">
+                        <div className="student-summary-name">
+                          {student.name.toUpperCase()}
+                        </div>
+                        <div className="student-summary-status-wrap">
+                          {isUpToDate ? (
+                            <span className="student-summary-badge student-summary-badge-ok">
+                              <CheckCircleOutlined /> Al día
+                            </span>
+                          ) : (
+                            <span className="student-summary-badge student-summary-badge-pending">
+                              <ExclamationCircleOutlined /> Pendiente: ${Math.abs(summary.difference).toFixed(2)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="student-summary-row">
                         <span className="student-summary-amount">
@@ -451,17 +503,6 @@ const PaymentSummary = () => {
                         <span className="student-summary-payments">
                           <CheckCircleOutlined /> {summary.paymentCount} pagos
                         </span>
-                      </div>
-                      <div className="student-summary-status-wrap">
-                        {isUpToDate ? (
-                          <span className="student-summary-badge student-summary-badge-ok">
-                            <CheckCircleOutlined /> Al día
-                          </span>
-                        ) : (
-                          <span className="student-summary-badge student-summary-badge-pending">
-                            <ExclamationCircleOutlined /> Pendiente: ${Math.abs(summary.difference).toFixed(2)}
-                          </span>
-                        )}
                       </div>
                     </div>
                   </div>
