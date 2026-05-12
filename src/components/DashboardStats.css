@@ -67,50 +67,70 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Celda categoría: gastado vs presupuesto (base_amount) */
-.dashboard-category-cell {
-  font-size: var(--text-xs, 12px);
-  line-height: 1.35;
-  min-width: 7.5rem;
+/* Encabezado de columna: nombre + presupuesto (una vez por categoría) */
+.dashboard-col-head {
+  text-align: right;
+  line-height: 1.25;
+  padding: 2px 0;
 }
 
-.dashboard-category-cell__line {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+.dashboard-col-head__name {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-primary, rgba(0, 0, 0, 0.88));
 }
 
-.dashboard-category-cell__label {
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+.dashboard-col-head__budget {
+  font-size: 11px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.55));
+  margin-top: 2px;
   font-weight: 500;
 }
 
-.dashboard-category-cell__muted {
-  margin-top: 4px;
-  font-size: 11px;
-  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+.dashboard-col-head__budget--muted {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.35));
+  font-style: italic;
 }
 
-.dashboard-category-cell__diff {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
+/* Celda compacta: gasto y delta en una línea */
+.dashboard-cat-cell {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: baseline;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.dashboard-cat-cell__spent {
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+}
+
+.dashboard-cat-cell__delta {
+  font-size: 11px;
   font-weight: 600;
 }
 
-.dashboard-category-cell__diff.is-over {
+.dashboard-cat-cell__delta--over {
   color: #cf1322;
 }
 
-.dashboard-category-cell__diff.is-under {
+.dashboard-cat-cell__delta--under {
   color: #3f8600;
 }
 
-.dashboard-category-cell__diff.is-on {
-  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+.dashboard-cat-tooltip div {
+  line-height: 1.45;
+}
+
+.expenses-table-card .ant-table-thead > tr > th {
+  vertical-align: top;
+  padding-top: 10px;
+  padding-bottom: 10px;
 }
 
 @media (max-width: 767px) {

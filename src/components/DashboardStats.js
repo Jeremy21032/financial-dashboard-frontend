@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Row, Col, Statistic, Table, message } from 'antd';
+import { Card, Row, Col, Statistic, Table, message, Tooltip } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import './DashboardStats.css';
@@ -46,57 +46,91 @@ function buildExpensePerStudentTable(rawData) {
   });
 
   const sortedCategories = Array.from(categorySet).sort((a, b) => a.localeCompare(b));
+  const dataRows = Array.from(studentMap.values());
 
-  const dynamicColumns = sortedCategories.map((category) => ({
-    title: category,
-    key: category,
-    align: 'right',
-    width: 152,
-    render: (_, record) => {
-      const cell = record.categoryCells[category];
-      if (!cell || (cell.spent === 0 && cell.budget === 0)) {
-        return '—';
+  const columnBudget = {};
+  sortedCategories.forEach((cat) => {
+    for (const row of dataRows) {
+      const c = row.categoryCells[cat];
+      if (c?.budget > 0) {
+        columnBudget[cat] = c.budget;
+        return;
       }
+    }
+    columnBudget[cat] = 0;
+  });
 
-      const hasBudget = cell.budget > 0;
-      const diff = cell.spent - cell.budget;
-
-      if (!hasBudget) {
-        return (
-          <div className="dashboard-category-cell">
-            <div className="dashboard-category-cell__line">
-              <span className="dashboard-category-cell__label">Gastado</span>
-              <span>{money(cell.spent)}</span>
-            </div>
-            <div className="dashboard-category-cell__muted">Sin presupuesto en categoría</div>
-          </div>
-        );
-      }
-
-      const diffStr = diff === 0 ? '$0.00' : `${diff > 0 ? '+' : ''}$${diff.toFixed(2)}`;
-
-      return (
-        <div className="dashboard-category-cell">
-          <div className="dashboard-category-cell__line">
-            <span className="dashboard-category-cell__label">Gastado</span>
-            <span>{money(cell.spent)}</span>
-          </div>
-          <div className="dashboard-category-cell__line">
-            <span className="dashboard-category-cell__label">Presup.</span>
-            <span>{money(cell.budget)}</span>
-          </div>
-          <div
-            className={`dashboard-category-cell__diff ${
-              diff > 0 ? 'is-over' : diff < 0 ? 'is-under' : 'is-on'
-            }`}
-          >
-            <span className="dashboard-category-cell__label">Dif.</span>
-            <span>{diffStr}</span>
-          </div>
+  const dynamicColumns = sortedCategories.map((category) => {
+    const presup = columnBudget[category] || 0;
+    return {
+      title: (
+        <div className="dashboard-col-head">
+          <div className="dashboard-col-head__name">{category}</div>
+          {presup > 0 ? (
+            <div className="dashboard-col-head__budget">Presup. {money(presup)}</div>
+          ) : (
+            <div className="dashboard-col-head__budget dashboard-col-head__budget--muted">Sin presup.</div>
+          )}
         </div>
-      );
-    },
-  }));
+      ),
+      key: category,
+      align: 'right',
+      width: 112,
+      render: (_, record) => {
+        const cell = record.categoryCells[category];
+        if (!cell || (cell.spent === 0 && cell.budget === 0)) {
+          return '—';
+        }
+
+        const hasBudget = cell.budget > 0;
+        const diff = cell.spent - cell.budget;
+        const tip = hasBudget ? (
+          <div className="dashboard-cat-tooltip">
+            <div>Gastado: {money(cell.spent)}</div>
+            <div>Presupuesto: {money(cell.budget)}</div>
+            <div>
+              Diferencia:{' '}
+              {diff === 0 ? money(0) : `${diff > 0 ? '+' : ''}$${diff.toFixed(2)}`}
+            </div>
+          </div>
+        ) : (
+          <span>
+            Gastado: {money(cell.spent)}
+            <br />
+            Sin presupuesto en categoría
+          </span>
+        );
+
+        if (!hasBudget) {
+          return (
+            <Tooltip title={tip}>
+              <span className="dashboard-cat-cell__spent">{money(cell.spent)}</span>
+            </Tooltip>
+          );
+        }
+
+        const deltaText =
+          diff === 0 ? '' : `${diff > 0 ? '+' : '−'}${money(Math.abs(diff)).replace('$', '')}`;
+
+        return (
+          <Tooltip title={tip}>
+            <div className="dashboard-cat-cell">
+              <span className="dashboard-cat-cell__spent">{money(cell.spent)}</span>
+              {diff !== 0 && (
+                <span
+                  className={`dashboard-cat-cell__delta ${
+                    diff > 0 ? 'dashboard-cat-cell__delta--over' : 'dashboard-cat-cell__delta--under'
+                  }`}
+                >
+                  {deltaText}
+                </span>
+              )}
+            </div>
+          </Tooltip>
+        );
+      },
+    };
+  });
 
   const baseColumns = [
     { title: 'Student ID', dataIndex: 'student_id', key: 'student_id' },
@@ -111,7 +145,7 @@ function buildExpensePerStudentTable(rawData) {
     },
   ];
 
-  return { data: Array.from(studentMap.values()), columns: baseColumns };
+  return { data: dataRows, columns: baseColumns };
 }
 
 const DashboardStats = ({ courseId }) => {
@@ -211,7 +245,7 @@ const DashboardStats = ({ courseId }) => {
       {/* Tabla de Gastos por Estudiante */}
       <Card
         title="Gastos por estudiante"
-        extra="Por categoría: gastado, presupuesto (valor base) y diferencia."
+        extra="Presupuesto por categoría en el título de columna; en cada fila solo el gasto y la desviación."
         bordered={false}
         className="expenses-table-card"
       >
@@ -220,6 +254,7 @@ const DashboardStats = ({ courseId }) => {
           dataSource={expensePerStudent}
           rowKey="student_id"
           loading={loading}
+          size="small"
           pagination={{ pageSize: 10 }}
           scroll={{ x: 'max-content' }}
           className="expenses-table"
