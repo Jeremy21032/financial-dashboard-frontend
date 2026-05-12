@@ -13,9 +13,9 @@ import {
 } from 'antd';
 import api, { addCourseIdToQuery } from '../services/api';
 import {
-  normStudentId,
   aggregateStudentCategories,
-  buildAllocationSums,
+  buildClassCategoryTotals,
+  buildAllocationSumsCourse,
 } from '../utils/surplusAllocations';
 
 const { Text } = Typography;
@@ -25,93 +25,79 @@ const round2 = (n) => Math.round(Number(n || 0) * 100) / 100;
 const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefresh }) => {
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
-  const [studentId, setStudentId] = useState(undefined);
   const [fromCat, setFromCat] = useState(undefined);
   const [toCat, setToCat] = useState(undefined);
 
-  const sums = useMemo(() => buildAllocationSums(allocations), [allocations]);
-
-  const studentOptions = useMemo(() => {
-    const m = new Map();
-    (rawExpenseRows || []).forEach((e) => {
-      const sid = normStudentId(e.studentID);
-      if (!sid) return;
-      if (!m.has(sid)) m.set(sid, e.student_name || sid);
-    });
-    return Array.from(m.entries()).map(([id, name]) => ({ value: id, label: name }));
-  }, [rawExpenseRows]);
+  const sums = useMemo(() => buildAllocationSumsCourse(allocations), [allocations]);
 
   const agg = useMemo(() => aggregateStudentCategories(rawExpenseRows), [rawExpenseRows]);
 
-  const surplusAvailable = useCallback(
-    (sid, cid) => {
-      const cell = agg.get(sid)?.get(cid);
-      if (!cell || !(cell.budget > 0)) return 0;
-      const surplusRaw = Math.max(0, round2(cell.budget - cell.spent));
-      const fk = `${sid}::${cid}`;
-      const out = sums.out.get(fk) || 0;
-      return round2(surplusRaw - out);
+  const classTotals = useMemo(() => buildClassCategoryTotals(agg), [agg]);
+
+  const surplusAvailCat = useCallback(
+    (cid) => {
+      const raw = classTotals.surplusTotalByCat.get(cid) || 0;
+      const out = sums.out.get(cid) || 0;
+      return round2(raw - out);
     },
-    [agg, sums]
+    [classTotals, sums]
   );
 
-  const deficitAvailable = useCallback(
-    (sid, cid) => {
-      const cell = agg.get(sid)?.get(cid);
-      if (!cell || !(cell.budget > 0)) return 0;
-      const deficitRaw = Math.max(0, round2(cell.spent - cell.budget));
-      const tk = `${sid}::${cid}`;
-      const inn = sums.inn.get(tk) || 0;
-      return round2(deficitRaw - inn);
+  const deficitAvailCat = useCallback(
+    (cid) => {
+      const raw = classTotals.deficitTotalByCat.get(cid) || 0;
+      const inn = sums.inn.get(cid) || 0;
+      return round2(raw - inn);
     },
-    [agg, sums]
+    [classTotals, sums]
   );
+
+  const categoryMeta = useMemo(() => {
+    const m = new Map();
+    agg.forEach((catMap) => {
+      catMap.forEach((cell, cid) => {
+        if (!m.has(cid)) m.set(cid, cell.categoryName);
+      });
+    });
+    return m;
+  }, [agg]);
 
   const fromOptions = useMemo(() => {
-    if (!studentId) return [];
-    const sid = normStudentId(studentId);
-    const catMap = agg.get(sid);
-    if (!catMap) return [];
     const opts = [];
-    catMap.forEach((cell, cid) => {
-      const avail = surplusAvailable(sid, cid);
+    classTotals.surplusTotalByCat.forEach((_, cid) => {
+      const avail = surplusAvailCat(cid);
       if (avail > 0.005) {
         opts.push({
           value: cid,
-          label: `${cell.categoryName} (${money(avail)} disp.)`,
+          label: `${categoryMeta.get(cid) || cid} — excedente curso ${money(avail)} disp.`,
         });
       }
     });
     return opts.sort((a, b) => String(a.label).localeCompare(String(b.label)));
-  }, [studentId, agg, surplusAvailable]);
+  }, [classTotals, surplusAvailCat, categoryMeta]);
 
   const toOptions = useMemo(() => {
-    if (!studentId) return [];
-    const sid = normStudentId(studentId);
-    const catMap = agg.get(sid);
-    if (!catMap) return [];
     const opts = [];
-    catMap.forEach((cell, cid) => {
+    classTotals.deficitTotalByCat.forEach((_, cid) => {
       if (fromCat != null && Number(fromCat) === cid) return;
-      const avail = deficitAvailable(sid, cid);
+      const avail = deficitAvailCat(cid);
       if (avail > 0.005) {
         opts.push({
           value: cid,
-          label: `${cell.categoryName} (${money(avail)} a cubrir)`,
+          label: `${categoryMeta.get(cid) || cid} — déficit curso ${money(avail)} a cubrir`,
         });
       }
     });
     return opts.sort((a, b) => String(a.label).localeCompare(String(b.label)));
-  }, [studentId, agg, deficitAvailable, fromCat]);
+  }, [classTotals, deficitAvailCat, categoryMeta, fromCat]);
 
   const maxAmount = useMemo(() => {
-    if (!studentId || fromCat == null || toCat == null) return null;
-    const sid = normStudentId(studentId);
-    const a = surplusAvailable(sid, Number(fromCat));
-    const b = deficitAvailable(sid, Number(toCat));
+    if (fromCat == null || toCat == null) return null;
+    const a = surplusAvailCat(Number(fromCat));
+    const b = deficitAvailCat(Number(toCat));
     const m = Math.min(a, b);
     return m > 0.005 ? round2(m) : null;
-  }, [studentId, fromCat, toCat, surplusAvailable, deficitAvailable]);
+  }, [fromCat, toCat, surplusAvailCat, deficitAvailCat]);
 
   useEffect(() => {
     if (maxAmount != null) {
@@ -122,10 +108,9 @@ const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefre
 
   const handleSubmit = async (values) => {
     if (!courseId) return;
-    const sid = normStudentId(values.student_id);
     const max = Math.min(
-      surplusAvailable(sid, Number(values.from_category_id)),
-      deficitAvailable(sid, Number(values.to_category_id))
+      surplusAvailCat(Number(values.from_category_id)),
+      deficitAvailCat(Number(values.to_category_id))
     );
     if (values.amount > max + 0.01) {
       message.error(`El monto no puede superar ${money(max)}`);
@@ -135,14 +120,12 @@ const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefre
       setSubmitting(true);
       await api.post('/surplus-allocations', {
         course_id: courseId,
-        student_id: values.student_id,
         from_category_id: values.from_category_id,
         to_category_id: values.to_category_id,
         amount: values.amount,
       });
-      message.success('Asignación guardada');
+      message.success('Asignación guardada (nivel curso)');
       form.resetFields();
-      setStudentId(undefined);
       setFromCat(undefined);
       setToCat(undefined);
       onRefresh();
@@ -165,7 +148,6 @@ const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefre
   };
 
   const columns = [
-    { title: 'Estudiante', dataIndex: 'student_label', key: 'st', width: 120, ellipsis: true },
     { title: 'Desde', dataIndex: 'from_category_name', key: 'f' },
     { title: 'Hacia', dataIndex: 'to_category_name', key: 't' },
     { title: 'Monto', dataIndex: 'amount', key: 'a', width: 100, render: (v) => money(v) },
@@ -183,29 +165,12 @@ const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefre
     },
   ];
 
-  const nameByStudent = useMemo(() => {
-    const m = new Map();
-    (rawExpenseRows || []).forEach((e) => {
-      const sid = normStudentId(e.studentID);
-      if (sid && e.student_name) m.set(sid, e.student_name);
-    });
-    return m;
-  }, [rawExpenseRows]);
-
-  const tableData = useMemo(
-    () =>
-      (allocations || []).map((a) => ({
-        ...a,
-        student_label: nameByStudent.get(normStudentId(a.student_id)) || a.student_id,
-      })),
-    [allocations, nameByStudent]
-  );
-
   return (
-    <Card title="Asignación de excedentes entre categorías" bordered={false} className="surplus-panel-card">
+    <Card title="Asignación de excedentes (todo el curso)" bordered={false} className="surplus-panel-card">
       <Text type="secondary" style={{ display: 'block', marginBottom: 12 }}>
-        Mueve parte del ahorro de una categoría (origen) para cubrir el sobregasto en otra (destino). Se guarda en
-        base de datos y el dashboard refleja el ajuste en las celdas (diferencia efectiva).
+        El excedente y el déficit se calculan sumando a todos los estudiantes por categoría. Lo que asignas aquí
+        afecta a la vista del dashboard repartiendo el efecto en cada alumno de forma proporcional a su ahorro o
+        sobregasto en esa categoría.
       </Text>
 
       <Form
@@ -217,34 +182,14 @@ const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefre
       >
         <Space wrap align="start">
           <Form.Item
-            name="student_id"
-            label="Estudiante"
-            rules={[{ required: true, message: 'Selecciona estudiante' }]}
-            style={{ minWidth: 220 }}
-          >
-            <Select
-              placeholder="Estudiante"
-              options={studentOptions}
-              showSearch
-              optionFilterProp="label"
-              onChange={(v) => {
-                setStudentId(v);
-                setFromCat(undefined);
-                setToCat(undefined);
-                form.setFieldsValue({ from_category_id: undefined, to_category_id: undefined, amount: undefined });
-              }}
-            />
-          </Form.Item>
-          <Form.Item
             name="from_category_id"
-            label="Origen (excedente)"
+            label="Origen (excedente del curso)"
             rules={[{ required: true, message: 'Origen' }]}
-            style={{ minWidth: 240 }}
+            style={{ minWidth: 280 }}
           >
             <Select
-              placeholder="Categoría con ahorro"
+              placeholder="Categoría con ahorro agregado"
               options={fromOptions}
-              disabled={!studentId}
               onChange={(v) => {
                 setFromCat(v);
                 setToCat(undefined);
@@ -254,14 +199,13 @@ const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefre
           </Form.Item>
           <Form.Item
             name="to_category_id"
-            label="Destino (déficit)"
+            label="Destino (déficit del curso)"
             rules={[{ required: true, message: 'Destino' }]}
-            style={{ minWidth: 240 }}
+            style={{ minWidth: 280 }}
           >
             <Select
-              placeholder="Categoría con sobregasto"
+              placeholder="Categoría con sobregasto agregado"
               options={toOptions}
-              disabled={!studentId}
               onChange={(v) => setToCat(v)}
             />
           </Form.Item>
@@ -293,8 +237,8 @@ const SurplusAllocationPanel = ({ courseId, rawExpenseRows, allocations, onRefre
         size="small"
         rowKey="id"
         columns={columns}
-        dataSource={tableData}
-        pagination={{ pageSize: 6 }}
+        dataSource={allocations || []}
+        pagination={{ pageSize: 8 }}
         locale={{ emptyText: 'Ninguna asignación aún' }}
       />
     </Card>

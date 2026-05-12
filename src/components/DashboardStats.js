@@ -3,53 +3,26 @@ import { Card, Row, Col, Statistic, Table, message, Tooltip } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import SurplusAllocationPanel from './SurplusAllocationPanel';
-import { normStudentId, buildAllocationSums, effectiveCategoryDiff } from '../utils/surplusAllocations';
+import {
+  normStudentId,
+  aggregateStudentCategories,
+  buildClassCategoryTotals,
+  buildAllocationSumsCourse,
+  effectiveCategoryDiffCourse,
+} from '../utils/surplusAllocations';
 import './DashboardStats.css';
 
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 
-function PersistedAllocationsExpand({ record, allocations }) {
-  const sid = normStudentId(record.student_id);
-  const mine = (allocations || []).filter((a) => normStudentId(a.student_id) === sid);
-  if (mine.length === 0) {
-    return (
-      <p className="dashboard-alloc-muted">
-        No hay asignaciones guardadas para este estudiante. Usa la sección inferior para registrar movimientos de
-        excedente.
-      </p>
-    );
-  }
-  return (
-    <div className="dashboard-alloc">
-      <div className="dashboard-alloc-subtitle">Asignaciones guardadas (excedente → déficit)</div>
-      <table className="dashboard-alloc-table">
-        <thead>
-          <tr>
-            <th>Desde</th>
-            <th>Hacia</th>
-            <th className="dashboard-alloc-num">Monto</th>
-          </tr>
-        </thead>
-        <tbody>
-          {mine.map((row) => (
-            <tr key={row.id}>
-              <td>{row.from_category_name}</td>
-              <td>{row.to_category_name}</td>
-              <td className="dashboard-alloc-num">{money(row.amount)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 /**
  * @param {Array} rawData filas expenses-per-student (con category_id si el backend lo envía)
- * @param {Array} allocations GET /surplus-allocations
+ * @param {Array} allocations GET /surplus-allocations (nivel curso)
  */
 function buildExpensePerStudentTable(rawData, allocations = []) {
-  const sums = buildAllocationSums(allocations);
+  const agg = aggregateStudentCategories(rawData);
+  const classTotals = buildClassCategoryTotals(agg);
+  const sums = buildAllocationSumsCourse(allocations);
+
   const studentMap = new Map();
   const categorySet = new Set();
 
@@ -134,14 +107,14 @@ function buildExpensePerStudentTable(rawData, allocations = []) {
 
         let rawDiff = cell.spent - cell.budget;
         let effectiveDiff = rawDiff;
-        let allocIn = 0;
-        let allocOut = 0;
+        let allocInShare = 0;
+        let allocOutShare = 0;
         if (hasBudget && cid != null && Number.isFinite(cid)) {
-          const eff = effectiveCategoryDiff(cell.spent, cell.budget, record.student_id, cid, sums);
+          const eff = effectiveCategoryDiffCourse(cell.spent, cell.budget, cid, classTotals, sums);
           rawDiff = eff.raw;
           effectiveDiff = eff.effective;
-          allocIn = eff.allocIn;
-          allocOut = eff.allocOut;
+          allocInShare = eff.allocInShare;
+          allocOutShare = eff.allocOutShare;
         }
 
         const tip = hasBudget ? (
@@ -149,11 +122,14 @@ function buildExpensePerStudentTable(rawData, allocations = []) {
             <div>Gastado: {money(cell.spent)}</div>
             <div>Presupuesto: {money(cell.budget)}</div>
             <div>Diferencia bruta: {rawDiff === 0 ? money(0) : `${rawDiff > 0 ? '+' : ''}$${rawDiff.toFixed(2)}`}</div>
-            {(allocIn > 0 || allocOut > 0) && (
+            {(allocInShare > 0 || allocOutShare > 0) && (
               <div style={{ marginTop: 6 }}>
-                Asignaciones: −{money(allocIn)} / +{money(allocOut)} (entra / sale)
+                Reparto asignaciones de curso: −{money(allocInShare)} / +{money(allocOutShare)} (cubre / aporta)
                 <br />
-                <strong>Diferencia efectiva: {effectiveDiff === 0 ? money(0) : `${effectiveDiff > 0 ? '+' : ''}$${effectiveDiff.toFixed(2)}`}</strong>
+                <strong>
+                  Diferencia efectiva:{' '}
+                  {effectiveDiff === 0 ? money(0) : `${effectiveDiff > 0 ? '+' : ''}$${effectiveDiff.toFixed(2)}`}
+                </strong>
               </div>
             )}
           </div>
@@ -212,11 +188,6 @@ function buildExpensePerStudentTable(rawData, allocations = []) {
       render: (val) => money(val),
     },
   ];
-
-  dataRows.forEach((row) => {
-    const cells = row.categoryCells || {};
-    row._expandable = Object.keys(cells).some((k) => cells[k]?.spent > 0 || cells[k]?.budget > 0);
-  });
 
   return { data: dataRows, columns: baseColumns };
 }
@@ -338,7 +309,7 @@ const DashboardStats = ({ courseId }) => {
 
       <Card
         title="Gastos por estudiante"
-        extra="Diferencia efectiva incluye asignaciones guardadas. Expande la fila para verlas."
+        extra="Diferencia efectiva: asignaciones de excedente a nivel curso, repartidas entre alumnos según su parte."
         bordered={false}
         className="expenses-table-card"
       >
@@ -351,12 +322,6 @@ const DashboardStats = ({ courseId }) => {
           pagination={{ pageSize: 10 }}
           scroll={{ x: 'max-content' }}
           className="expenses-table"
-          expandable={{
-            rowExpandable: (record) => Boolean(record._expandable),
-            expandedRowRender: (record) => (
-              <PersistedAllocationsExpand record={record} allocations={allocations} />
-            ),
-          }}
         />
       </Card>
 

@@ -7,7 +7,9 @@ function bytesJsonToUuid(bufObj) {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20, 32)}`;
 }
 
-/** Normaliza id de estudiante para coincidir con API de asignaciones (string estable). */
+const round2 = (n) => Math.round(Number(n || 0) * 100) / 100;
+
+/** Normaliza id de estudiante (filas del dashboard). */
 export function normStudentId(v) {
   if (v == null || v === '') return '';
   if (typeof v === 'object' && v !== null && v.type === 'Buffer' && Array.isArray(v.data)) {
@@ -45,25 +47,61 @@ export function aggregateStudentCategories(rawData) {
   return byStudent;
 }
 
-export function buildAllocationSums(allocations) {
+/** Excedente / déficit total del curso por categoría (suma de todos los estudiantes). */
+export function buildClassCategoryTotals(byStudentMap) {
+  const surplusTotalByCat = new Map();
+  const deficitTotalByCat = new Map();
+  byStudentMap.forEach((catMap) => {
+    catMap.forEach((cell, cid) => {
+      if (!(cell.budget > 0)) return;
+      const raw = round2(cell.spent - cell.budget);
+      if (raw < -0.005) {
+        surplusTotalByCat.set(cid, round2((surplusTotalByCat.get(cid) || 0) - raw));
+      } else if (raw > 0.005) {
+        deficitTotalByCat.set(cid, round2((deficitTotalByCat.get(cid) || 0) + raw));
+      }
+    });
+  });
+  return { surplusTotalByCat, deficitTotalByCat };
+}
+
+/** Asignaciones persistidas a nivel curso (sin estudiante). */
+export function buildAllocationSumsCourse(allocations) {
   const out = new Map();
   const inn = new Map();
   (allocations || []).forEach((a) => {
-    const sk = normStudentId(a.student_id);
-    const fk = `${sk}::${Number(a.from_category_id)}`;
-    const tk = `${sk}::${Number(a.to_category_id)}`;
-    out.set(fk, (out.get(fk) || 0) + Number(a.amount));
-    inn.set(tk, (inn.get(tk) || 0) + Number(a.amount));
+    const fid = Number(a.from_category_id);
+    const tid = Number(a.to_category_id);
+    out.set(fid, round2((out.get(fid) || 0) + Number(a.amount)));
+    inn.set(tid, round2((inn.get(tid) || 0) + Number(a.amount)));
   });
   return { out, inn };
 }
 
-export function effectiveCategoryDiff(spent, budget, studentId, categoryId, sums) {
-  const sk = normStudentId(studentId);
-  const raw = Math.round((Number(spent) - Number(budget)) * 100) / 100;
-  if (!(budget > 0)) return { raw, effective: raw, allocIn: 0, allocOut: 0 };
-  const allocIn = sums.inn.get(`${sk}::${Number(categoryId)}`) || 0;
-  const allocOut = sums.out.get(`${sk}::${Number(categoryId)}`) || 0;
-  const effective = Math.round((raw - allocIn + allocOut) * 100) / 100;
-  return { raw, effective, allocIn, allocOut };
+/**
+ * Diferencia efectiva por celda: reparto proporcional del excedente/déficit de curso
+ * que cubren las asignaciones entre categorías.
+ */
+export function effectiveCategoryDiffCourse(spent, budget, categoryId, classTotals, sums) {
+  const cid = Number(categoryId);
+  const raw = round2(Number(spent) - Number(budget));
+  if (!(budget > 0)) return { raw, effective: raw, allocInShare: 0, allocOutShare: 0 };
+
+  const allocOutCat = sums.out.get(cid) || 0;
+  const allocInCat = sums.inn.get(cid) || 0;
+  const T_sur = classTotals.surplusTotalByCat.get(cid) || 0;
+  const T_def = classTotals.deficitTotalByCat.get(cid) || 0;
+
+  let allocOutShare = 0;
+  let allocInShare = 0;
+  if (raw < -0.005 && T_sur > 0) {
+    const u = -raw;
+    allocOutShare = round2((u / T_sur) * allocOutCat);
+  }
+  if (raw > 0.005 && T_def > 0) {
+    const d = raw;
+    allocInShare = round2((d / T_def) * allocInCat);
+  }
+  const effective = round2(raw - allocInShare + allocOutShare);
+  return { raw, effective, allocInShare, allocOutShare };
 }
