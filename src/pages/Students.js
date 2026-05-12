@@ -1,14 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Input, Space, message } from 'antd';
-import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import { SearchOutlined, PlusOutlined, FileExcelOutlined } from '@ant-design/icons';
 import { useCourse } from '../context/CourseContext';
 import api from '../services/api';
+import { exportStudentsToExcel } from '../utils/exportStudentsExcel';
 import './Students.css';
 
 const Students = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
+  const [courseMeta, setCourseMeta] = useState(null);
+  const [exporting, setExporting] = useState(false);
   const { selectedCourseId } = useCourse();
 
   const fetchStudents = useCallback(async () => {
@@ -29,6 +32,45 @@ const Students = () => {
     }
   }, [selectedCourseId, fetchStudents]);
 
+  const fetchCourseMeta = useCallback(async () => {
+    if (!selectedCourseId) {
+      setCourseMeta(null);
+      return;
+    }
+    try {
+      const res = await api.get(`/courses/${selectedCourseId}`);
+      setCourseMeta(res.data);
+    } catch (e) {
+      console.error(e);
+      setCourseMeta(null);
+    }
+  }, [selectedCourseId]);
+
+  useEffect(() => {
+    fetchCourseMeta();
+  }, [fetchCourseMeta]);
+
+  const handleExportExcel = () => {
+    if (!selectedCourseId) {
+      message.warning('Selecciona un curso para exportar.');
+      return;
+    }
+    if (!students.length) {
+      message.warning('No hay estudiantes para exportar.');
+      return;
+    }
+    try {
+      setExporting(true);
+      exportStudentsToExcel(students, courseMeta, { searchText });
+      message.success('Archivo Excel generado');
+    } catch (e) {
+      console.error(e);
+      message.error('No se pudo generar el Excel');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const columns = [
     {
       title: 'ID',
@@ -45,9 +87,10 @@ const Students = () => {
         record.name.toLowerCase().includes(value.toLowerCase()),
     },
     {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
+      title: 'Paralelo',
+      key: 'parallel',
+      width: 120,
+      render: () => (courseMeta?.parallel != null ? String(courseMeta.parallel) : '—'),
     },
   ];
 
@@ -63,6 +106,16 @@ const Students = () => {
             onChange={(e) => setSearchText(e.target.value)}
             className="students-search"
           />
+          <Button
+            type="default"
+            icon={<FileExcelOutlined />}
+            className="students-export-excel"
+            loading={exporting}
+            disabled={!selectedCourseId || !students.length}
+            onClick={handleExportExcel}
+          >
+            Exportar Excel
+          </Button>
           <Button type="primary" icon={<PlusOutlined />}>
             Agregar
           </Button>

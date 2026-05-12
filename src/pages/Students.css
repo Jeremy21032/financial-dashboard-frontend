@@ -29,6 +29,18 @@
   min-width: 0;
 }
 
+.students-export-excel {
+  border-color: #217346;
+  color: #217346;
+  font-weight: 500;
+}
+
+.students-export-excel:not(:disabled):hover {
+  border-color: #1a5c38 !important;
+  color: #1a5c38 !important;
+  background: #f6ffed !important;
+}
+
 .students-table-container {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
