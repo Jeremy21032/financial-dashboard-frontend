@@ -26,8 +26,15 @@ export function stripDiacritics(s) {
     .toLowerCase();
 }
 
+/** Corrige letras que Tesseract confunde con dígitos en tokens monetarios. */
+function ocrFixDigitsInMoneyToken(s) {
+  return String(s)
+    .replace(/[Oo]/g, '0')
+    .replace(/[lI|]/g, '1');
+}
+
 function normalizeMoneyToken(s) {
-  const raw = String(s).trim();
+  const raw = ocrFixDigitsInMoneyToken(String(s).trim());
   if (!raw) return NaN;
   const lastComma = raw.lastIndexOf(',');
   const lastDot = raw.lastIndexOf('.');
@@ -45,20 +52,58 @@ function normalizeMoneyToken(s) {
 }
 
 /**
+ * Tesseract suele leer "$" como S, 5, § o dejar solo el número en grande al inicio.
+ */
+function normalizeDollarLikeSymbols(text) {
+  let t = text;
+  t = t.replace(/\uFF04/g, '$'); // fullwidth $
+  t = t.replace(/\uFE69/g, '$'); // small $
+  t = t.replace(/(?<![A-Za-z0-9])([5Ss§])\s*(?=\d)/g, '$');
+  return t;
+}
+
+/**
+ * Montos tipo 90,00 / 90.00 sin símbolo (título del comprobante).
+ * Solo toma candidatos con exactamente 2 decimales para no confundir con años o comprobantes enteros.
+ */
+function parseAmountStandaloneDecimals(text) {
+  const head = text.slice(0, 1500);
+  const candidates = [];
+  const re = /\b(\d{1,6}[.,]\d{2})\b/g;
+  let m;
+  while ((m = re.exec(head)) !== null) {
+    const n = normalizeMoneyToken(m[1]);
+    if (!Number.isNaN(n) && n >= 0.01 && n < 1e7) candidates.push(n);
+  }
+  return candidates;
+}
+
+/**
  * @param {string} text
  * @returns {number|null}
  */
 export function parseAmount(text) {
   if (!text) return null;
   const candidates = [];
-  const re = /\$\s*([\d]{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|[\d]+[.,]\d{1,2}|[\d]+)/g;
+  const normalized = normalizeDollarLikeSymbols(text);
+
+  const reDollar =
+    /[$＄]\s*([\dOl]{1,3}(?:[.,]\d{3})*(?:[.,]\d{1,2})?|[\dOl]+[.,]\d{1,2}|[\dOl]+)/g;
   let m;
-  while ((m = re.exec(text)) !== null) {
+  while ((m = reDollar.exec(normalized)) !== null) {
     const n = normalizeMoneyToken(m[1]);
     if (!Number.isNaN(n) && n > 0 && n < 1e9) candidates.push(n);
   }
+
+  for (const n of parseAmountStandaloneDecimals(normalized)) {
+    candidates.push(n);
+  }
+
   if (!candidates.length) return null;
-  return Math.max(...candidates);
+
+  const plausible = candidates.filter((n) => n <= 500000);
+  const pool = plausible.length ? plausible : candidates;
+  return Math.max(...pool);
 }
 
 /**
