@@ -67,6 +67,52 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Celda categoría: gastado vs presupuesto (base_amount) */
+.dashboard-category-cell {
+  font-size: var(--text-xs, 12px);
+  line-height: 1.35;
+  min-width: 7.5rem;
+}
+
+.dashboard-category-cell__line {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dashboard-category-cell__label {
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+  font-weight: 500;
+}
+
+.dashboard-category-cell__muted {
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+}
+
+.dashboard-category-cell__diff {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color, rgba(0, 0, 0, 0.06));
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.dashboard-category-cell__diff.is-over {
+  color: #cf1322;
+}
+
+.dashboard-category-cell__diff.is-under {
+  color: #3f8600;
+}
+
+.dashboard-category-cell__diff.is-on {
+  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+}
+
 @media (max-width: 767px) {
   .stat-card .ant-card-body {
     padding: var(--space-md);
