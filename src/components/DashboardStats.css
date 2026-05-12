@@ -127,10 +127,116 @@
   line-height: 1.45;
 }
 
+/* Panel expandible: cuadre excedentes ↔ déficits */
+.dashboard-alloc {
+  padding: 12px 16px 16px;
+  background: var(--bg-subtle, #fafafa);
+  border-radius: var(--radius-md, 8px);
+  max-width: 640px;
+}
+
+.dashboard-alloc-intro {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-primary, rgba(0, 0, 0, 0.85));
+}
+
+.dashboard-alloc-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.65));
+}
+
+.dashboard-alloc-totals .is-surplus {
+  color: #3f8600;
+  font-weight: 600;
+}
+
+.dashboard-alloc-totals .is-deficit {
+  color: #cf1322;
+  font-weight: 600;
+}
+
+.dashboard-alloc-subtitle {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 8px 0 6px;
+  color: var(--text-primary, rgba(0, 0, 0, 0.88));
+}
+
+.dashboard-alloc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-alloc-table th,
+.dashboard-alloc-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-alloc-table th {
+  background: rgba(0, 0, 0, 0.02);
+  font-weight: 600;
+}
+
+.dashboard-alloc-table tr:last-child td {
+  border-bottom: none;
+}
+
+.dashboard-alloc-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-alloc-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.dashboard-alloc-box ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+}
+
+.dashboard-alloc-box--warn {
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+}
+
+.dashboard-alloc-box--ok {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+}
+
+.dashboard-alloc-muted {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-secondary, rgba(0, 0, 0, 0.45));
+}
+
 .expenses-table-card .ant-table-thead > tr > th {
   vertical-align: top;
   padding-top: 10px;
   padding-bottom: 10px;
+}
+
+.surplus-panel-card {
+  margin-top: var(--space-lg, 24px);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 767px) {

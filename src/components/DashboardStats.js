@@ -2,23 +2,63 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Card, Row, Col, Statistic, Table, message, Tooltip } from 'antd';
 import { ArrowUpOutlined, ArrowDownOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import SurplusAllocationPanel from './SurplusAllocationPanel';
+import { normStudentId, buildAllocationSums, effectiveCategoryDiff } from '../utils/surplusAllocations';
 import './DashboardStats.css';
 
 const money = (n) => `$${Number(n || 0).toFixed(2)}`;
 
+function PersistedAllocationsExpand({ record, allocations }) {
+  const sid = normStudentId(record.student_id);
+  const mine = (allocations || []).filter((a) => normStudentId(a.student_id) === sid);
+  if (mine.length === 0) {
+    return (
+      <p className="dashboard-alloc-muted">
+        No hay asignaciones guardadas para este estudiante. Usa la sección inferior para registrar movimientos de
+        excedente.
+      </p>
+    );
+  }
+  return (
+    <div className="dashboard-alloc">
+      <div className="dashboard-alloc-subtitle">Asignaciones guardadas (excedente → déficit)</div>
+      <table className="dashboard-alloc-table">
+        <thead>
+          <tr>
+            <th>Desde</th>
+            <th>Hacia</th>
+            <th className="dashboard-alloc-num">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {mine.map((row) => (
+            <tr key={row.id}>
+              <td>{row.from_category_name}</td>
+              <td>{row.to_category_name}</td>
+              <td className="dashboard-alloc-num">{money(row.amount)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 /**
- * Agrupa filas de la vista student_expenses_share (enriquecida con category_base_amount)
- * y arma columnas que muestran gasto vs presupuesto por categoría y la diferencia.
+ * @param {Array} rawData filas expenses-per-student (con category_id si el backend lo envía)
+ * @param {Array} allocations GET /surplus-allocations
  */
-function buildExpensePerStudentTable(rawData) {
+function buildExpensePerStudentTable(rawData, allocations = []) {
+  const sums = buildAllocationSums(allocations);
   const studentMap = new Map();
   const categorySet = new Set();
 
   (rawData || []).forEach((entry) => {
-    const sid = entry.studentID;
+    const sid = normStudentId(entry.studentID);
     const category = entry.category || 'Sin categoría';
     const amount = parseFloat(entry.shared_amount) || 0;
     const rowBudget = parseFloat(entry.category_base_amount ?? entry.base_amount) || 0;
+    const rowCatId = entry.category_id != null ? Number(entry.category_id) : null;
 
     if (!studentMap.has(sid)) {
       studentMap.set(sid, {
@@ -31,11 +71,18 @@ function buildExpensePerStudentTable(rawData) {
 
     const student = studentMap.get(sid);
     if (!student.categoryCells[category]) {
-      student.categoryCells[category] = { spent: 0, budget: rowBudget };
+      student.categoryCells[category] = {
+        spent: 0,
+        budget: rowBudget,
+        categoryId: Number.isFinite(rowCatId) ? rowCatId : null,
+      };
     } else {
       const cell = student.categoryCells[category];
       if (rowBudget > 0 && cell.budget === 0) {
         cell.budget = rowBudget;
+      }
+      if (Number.isFinite(rowCatId) && cell.categoryId == null) {
+        cell.categoryId = rowCatId;
       }
     }
 
@@ -83,15 +130,32 @@ function buildExpensePerStudentTable(rawData) {
         }
 
         const hasBudget = cell.budget > 0;
-        const diff = cell.spent - cell.budget;
+        const cid = cell.categoryId;
+
+        let rawDiff = cell.spent - cell.budget;
+        let effectiveDiff = rawDiff;
+        let allocIn = 0;
+        let allocOut = 0;
+        if (hasBudget && cid != null && Number.isFinite(cid)) {
+          const eff = effectiveCategoryDiff(cell.spent, cell.budget, record.student_id, cid, sums);
+          rawDiff = eff.raw;
+          effectiveDiff = eff.effective;
+          allocIn = eff.allocIn;
+          allocOut = eff.allocOut;
+        }
+
         const tip = hasBudget ? (
           <div className="dashboard-cat-tooltip">
             <div>Gastado: {money(cell.spent)}</div>
             <div>Presupuesto: {money(cell.budget)}</div>
-            <div>
-              Diferencia:{' '}
-              {diff === 0 ? money(0) : `${diff > 0 ? '+' : ''}$${diff.toFixed(2)}`}
-            </div>
+            <div>Diferencia bruta: {rawDiff === 0 ? money(0) : `${rawDiff > 0 ? '+' : ''}$${rawDiff.toFixed(2)}`}</div>
+            {(allocIn > 0 || allocOut > 0) && (
+              <div style={{ marginTop: 6 }}>
+                Asignaciones: −{money(allocIn)} / +{money(allocOut)} (entra / sale)
+                <br />
+                <strong>Diferencia efectiva: {effectiveDiff === 0 ? money(0) : `${effectiveDiff > 0 ? '+' : ''}$${effectiveDiff.toFixed(2)}`}</strong>
+              </div>
+            )}
           </div>
         ) : (
           <span>
@@ -109,17 +173,21 @@ function buildExpensePerStudentTable(rawData) {
           );
         }
 
-        const deltaText =
-          diff === 0 ? '' : `${diff > 0 ? '+' : '−'}${money(Math.abs(diff)).replace('$', '')}`;
+        const showDelta = Math.abs(effectiveDiff) > 0.005;
+        const deltaText = showDelta
+          ? `${effectiveDiff > 0 ? '+' : '−'}${money(Math.abs(effectiveDiff)).replace('$', '')}`
+          : '';
 
         return (
           <Tooltip title={tip}>
             <div className="dashboard-cat-cell">
               <span className="dashboard-cat-cell__spent">{money(cell.spent)}</span>
-              {diff !== 0 && (
+              {showDelta && (
                 <span
                   className={`dashboard-cat-cell__delta ${
-                    diff > 0 ? 'dashboard-cat-cell__delta--over' : 'dashboard-cat-cell__delta--under'
+                    effectiveDiff > 0
+                      ? 'dashboard-cat-cell__delta--over'
+                      : 'dashboard-cat-cell__delta--under'
                   }`}
                 >
                   {deltaText}
@@ -145,6 +213,11 @@ function buildExpensePerStudentTable(rawData) {
     },
   ];
 
+  dataRows.forEach((row) => {
+    const cells = row.categoryCells || {};
+    row._expandable = Object.keys(cells).some((k) => cells[k]?.spent > 0 || cells[k]?.budget > 0);
+  });
+
   return { data: dataRows, columns: baseColumns };
 }
 
@@ -155,29 +228,43 @@ const DashboardStats = ({ courseId }) => {
     totalDifference: 0,
   });
   const [expensePerStudent, setExpensePerStudent] = useState([]);
+  const [rawExpenseRows, setRawExpenseRows] = useState([]);
+  const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [columns, setColumns] = useState([]);
+
+  const loadAllocations = useCallback(async () => {
+    if (!courseId) return [];
+    try {
+      const res = await api.get(`/surplus-allocations?course_id=${courseId}`);
+      return Array.isArray(res.data) ? res.data : [];
+    } catch (e) {
+      if (e.response?.status === 503) {
+        message.warning('Asignaciones: crea la tabla surplus_allocations en MySQL (ver migrations).');
+      }
+      return [];
+    }
+  }, [courseId]);
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Obtener Pagos del curso
-      const paymentsRes = await api.get(`/payments?course_id=${courseId}`);
+      const [paymentsRes, expensesRes, expensesPerStudentRes, allocList] = await Promise.all([
+        api.get(`/payments?course_id=${courseId}`),
+        api.get(`/expenses?course_id=${courseId}`),
+        api.get(`/expenses/expenses-per-student?course_id=${courseId}`),
+        loadAllocations(),
+      ]);
+
       const totalPayments = paymentsRes.data.reduce((sum, p) => sum + parseFloat(p.amount), 0);
-
-      // Obtener Gastos del curso
-      const expensesRes = await api.get(`/expenses?course_id=${courseId}`);
       const totalExpenses = expensesRes.data.reduce((sum, e) => sum + parseFloat(e.amount), 0);
-
-      // Obtener Gastos por Estudiante del curso
-      const expensesPerStudentRes = await api.get(`/expenses/expenses-per-student?course_id=${courseId}`);
-
-      // Calcular Diferencia
       const totalDifference = totalPayments - totalExpenses;
 
-      // Transformar Datos para la Tabla
-      const transformedData = buildExpensePerStudentTable(expensesPerStudentRes.data);
+      setRawExpenseRows(expensesPerStudentRes.data || []);
+      setAllocations(allocList);
+
+      const transformedData = buildExpensePerStudentTable(expensesPerStudentRes.data, allocList);
       setExpensePerStudent(transformedData.data);
       setColumns(transformedData.columns);
 
@@ -188,7 +275,7 @@ const DashboardStats = ({ courseId }) => {
     } finally {
       setLoading(false);
     }
-  }, [courseId]);
+  }, [courseId, loadAllocations]);
 
   useEffect(() => {
     if (courseId) {
@@ -196,9 +283,16 @@ const DashboardStats = ({ courseId }) => {
     }
   }, [courseId, fetchData]);
 
+  const refreshAllocationsOnly = useCallback(async () => {
+    const list = await loadAllocations();
+    setAllocations(list);
+    const transformed = buildExpensePerStudentTable(rawExpenseRows, list);
+    setExpensePerStudent(transformed.data);
+    setColumns(transformed.columns);
+  }, [loadAllocations, rawExpenseRows]);
+
   return (
     <div className="dashboard-stats-container">
-      {/* Tarjetas de resumen */}
       <Row gutter={[16, 16]} justify="center" className="stats-cards-row">
         <Col xs={24} sm={12} lg={8}>
           <Card bordered={false} className="stat-card">
@@ -242,10 +336,9 @@ const DashboardStats = ({ courseId }) => {
         </Col>
       </Row>
 
-      {/* Tabla de Gastos por Estudiante */}
       <Card
         title="Gastos por estudiante"
-        extra="Presupuesto por categoría en el título de columna; en cada fila solo el gasto y la desviación."
+        extra="Diferencia efectiva incluye asignaciones guardadas. Expande la fila para verlas."
         bordered={false}
         className="expenses-table-card"
       >
@@ -258,11 +351,25 @@ const DashboardStats = ({ courseId }) => {
           pagination={{ pageSize: 10 }}
           scroll={{ x: 'max-content' }}
           className="expenses-table"
+          expandable={{
+            rowExpandable: (record) => Boolean(record._expandable),
+            expandedRowRender: (record) => (
+              <PersistedAllocationsExpand record={record} allocations={allocations} />
+            ),
+          }}
         />
       </Card>
+
+      {courseId && (
+        <SurplusAllocationPanel
+          courseId={courseId}
+          rawExpenseRows={rawExpenseRows}
+          allocations={allocations}
+          onRefresh={refreshAllocationsOnly}
+        />
+      )}
     </div>
   );
 };
 
 export default DashboardStats;
-
