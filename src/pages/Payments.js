@@ -13,18 +13,22 @@ import {
   Row,
   Col,
   Popconfirm,
-  Image
+  Image,
+  Alert,
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  EyeOutlined
+  EyeOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons';
 import { useCourse } from '../context/CourseContext';
 import api, { addCourseIdToQuery, addCourseId, getPaymentImageUrl } from '../services/api';
 import ImageUploader from '../components/ImageUploader';
+import { runReceiptOcr } from '../utils/paymentReceiptOcr';
+import { matchStudent } from '../utils/paymentReceiptParse';
 import moment from 'moment';
 import './Payments.css';
 
@@ -43,6 +47,9 @@ const Payments = () => {
   
   const { selectedCourseId } = useCourse();
   const [form] = Form.useForm();
+  const paymentImage = Form.useWatch('payment_image', form);
+  const [ocrLoading, setOcrLoading] = useState(false);
+  const [ocrHint, setOcrHint] = useState(null);
 
   const fetchStudents = useCallback(async () => {
     try {
@@ -96,10 +103,51 @@ const Payments = () => {
       form.resetFields();
       setShowForm(false);
       setEditingPayment(null);
+      setOcrHint(null);
       fetchPayments();
     } catch (error) {
       message.error('Error al procesar el pago');
       console.error(error);
+    }
+  };
+
+  const handleExtractFromReceipt = async () => {
+    const img = form.getFieldValue('payment_image');
+    if (!img || typeof img !== 'string') {
+      message.warning('Sube primero una imagen del comprobante (JPG o PNG).');
+      return;
+    }
+    setOcrLoading(true);
+    setOcrHint(null);
+    try {
+      const result = await runReceiptOcr(img);
+      const textForMatch = [result.rawText, result.beneficiarySnippet].filter(Boolean).join('\n');
+      const match = matchStudent(students, textForMatch);
+
+      const updates = {};
+      if (result.amount != null) updates.amount = result.amount;
+      if (result.dateStr) updates.date = moment(result.dateStr, 'YYYY-MM-DD');
+      if (match.studentId != null && !match.ambiguous) {
+        updates.student_id = match.studentId;
+      }
+      form.setFieldsValue(updates);
+
+      setOcrHint({
+        amount: result.amount,
+        dateStr: result.dateStr,
+        comprobante: result.comprobante,
+        beneficiarySnippet: result.beneficiarySnippet || '',
+        studentMatched: Boolean(match.studentId && !match.ambiguous),
+        studentAmbiguous: match.ambiguous,
+        studentUnmatched: !match.studentId && !match.ambiguous,
+      });
+
+      message.success('Datos sugeridos aplicados. Revisa el formulario y confirma con Registrar.');
+    } catch (e) {
+      console.error(e);
+      message.error('No se pudo leer el comprobante. Prueba otra imagen más nítida.');
+    } finally {
+      setOcrLoading(false);
     }
   };
 
@@ -114,6 +162,7 @@ const Payments = () => {
       payment_image: payment.payment_image
     });
     setShowForm(true);
+    setOcrHint(null);
   };
 
   const handleDelete = async (id) => {
@@ -262,6 +311,7 @@ const Payments = () => {
               onClick={() => {
                 setShowForm(true);
                 setEditingPayment(null);
+                setOcrHint(null);
                 form.resetFields();
               }}
             >
@@ -400,10 +450,62 @@ const Payments = () => {
                 </Col>
                 <Col xs={24} sm={12} md={8}>
                   <Form.Item name="payment_image" label="Comprobante">
-                    <ImageUploader onUpload={(image) => form.setFieldsValue({ payment_image: image })} />
+                    <ImageUploader
+                      onUpload={(image) => {
+                        form.setFieldsValue({ payment_image: image });
+                        setOcrHint(null);
+                      }}
+                    />
                   </Form.Item>
+                  <Button
+                    type="default"
+                    icon={<FileSearchOutlined />}
+                    loading={ocrLoading}
+                    disabled={!paymentImage}
+                    onClick={handleExtractFromReceipt}
+                    block
+                  >
+                    Extraer datos del comprobante
+                  </Button>
                 </Col>
               </Row>
+              {ocrHint && (
+                <Row style={{ marginTop: 12 }}>
+                  <Col span={24}>
+                    <Alert
+                      type="info"
+                      showIcon
+                      closable
+                      onClose={() => setOcrHint(null)}
+                      message="Valores detectados (revisar antes de registrar)"
+                      description={
+                        <ul style={{ margin: '8px 0 0', paddingLeft: 18 }}>
+                          {ocrHint.amount != null && (
+                            <li>Monto sugerido: ${Number(ocrHint.amount).toFixed(2)}</li>
+                          )}
+                          {ocrHint.dateStr && <li>Fecha sugerida: {ocrHint.dateStr}</li>}
+                          {ocrHint.comprobante && (
+                            <li>Comprobante (referencia): {ocrHint.comprobante}</li>
+                          )}
+                          {ocrHint.beneficiarySnippet && (
+                            <li>Texto beneficiario / contexto: {ocrHint.beneficiarySnippet}</li>
+                          )}
+                          {ocrHint.studentMatched && <li>Estudiante: coincidencia aplicada</li>}
+                          {ocrHint.studentAmbiguous && (
+                            <li>
+                              Estudiante: varias coincidencias posibles — elige manualmente en el
+                              desplegable.
+                            </li>
+                          )}
+                          {ocrHint.studentUnmatched && (
+                            <li>Estudiante: no se pudo inferir con seguridad — selección manual.</li>
+                          )}
+                        </ul>
+                      }
+                    />
+                  </Col>
+                </Row>
+              )}
               <Row>
                 <Col>
                   <Space>
@@ -413,6 +515,7 @@ const Payments = () => {
                     <Button onClick={() => {
                       setShowForm(false);
                       setEditingPayment(null);
+                      setOcrHint(null);
                       form.resetFields();
                     }}>
                       Cancelar
